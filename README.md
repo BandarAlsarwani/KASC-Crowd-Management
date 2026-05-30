@@ -149,12 +149,12 @@ open dashboard/dashboard_dijkstra.html
 
 ## 👥 Team
 
-| Name | Student ID |
-|------|------------|
-| Bandar Abdullah Alsarwani | 444006001 |
-| Hamzah Khaled Sherbini | 44411249 |
-| Anas Mohammed Alahmdi | 444002854 |
-| Ahmed Nawaf Almufrraji | 44411780 |
+| Name | 
+|------|
+| Bandar Abdullah Alsarwani |
+| Hamzah Khaled Sherbini |
+| Anas Mohammed Alahmdi |
+| Ahmed Nawaf Almufrraji |
 
 **Supervisor**: Dr. Mohammed Halawani — mkhalawani@uqu.edu.sa  
 **Department**: Data Science, College of Computing, Umm Al-Qura University
