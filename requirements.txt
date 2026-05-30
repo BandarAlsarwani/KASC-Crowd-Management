@@ -1,0 +1,21 @@
+# KASC Crowd Management System - Python Dependencies
+
+# Core ML
+scikit-learn>=1.3.0
+xgboost>=2.0.0
+lightgbm>=4.0.0
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Web framework (for API/backend if needed)
+flask>=3.0.0
+
+# Utilities
+joblib>=1.3.0
+scipy>=1.11.0

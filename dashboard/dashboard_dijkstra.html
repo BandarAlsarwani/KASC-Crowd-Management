@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KASC Crowd Management Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;padding:20px;}
+.container{max-width:1400px;margin:0 auto;background:white;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden;}
+.header{background:linear-gradient(135deg,#059669 0%,#047857 100%);color:white;padding:30px;text-align:center;}
+.header h1{font-size:32px;margin-bottom:10px;}
+.header p{opacity:0.9;font-size:16px;}
+.tabs{display:flex;background:#f8f9fa;border-bottom:3px solid #e9ecef;overflow-x:auto;}
+.tab{flex:1;padding:20px;text-align:center;cursor:pointer;border:none;background:none;font-size:16px;font-weight:600;color:#6c757d;transition:all 0.3s;min-width:150px;}
+.tab:hover{background:#e9ecef;color:#059669;}
+.tab.active{background:white;color:#059669;border-bottom:3px solid #059669;margin-bottom:-3px;}
+.tab-content{display:none;padding:40px;animation:fadeIn 0.3s;}
+.tab-content.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.card{background:white;border-radius:15px;padding:25px;margin-bottom:25px;box-shadow:0 4px 15px rgba(0,0,0,0.1);border-left:5px solid #059669;}
+.card h2{color:#059669;margin-bottom:20px;font-size:24px;}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:30px;}
+.stat-card{background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%);border-radius:12px;padding:20px;text-align:center;transition:transform 0.3s;}
+.stat-card:hover{transform:translateY(-5px);}
+.stat-value{font-size:36px;font-weight:bold;color:#059669;margin:10px 0;}
+.stat-label{color:#6c757d;font-size:14px;text-transform:uppercase;letter-spacing:1px;}
+.gate-status{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;}
+.gate-card{background:white;border-radius:12px;padding:20px;border:2px solid #e9ecef;}
+.gate-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;}
+.gate-name{font-size:20px;font-weight:bold;color:#212529;}
+.status-badge{padding:5px 15px;border-radius:20px;font-size:12px;font-weight:bold;text-transform:uppercase;}
+.status-high{background:#fee2e2;color:#991b1b;}
+.status-medium{background:#fef3c7;color:#92400e;}
+.status-low{background:#d1fae5;color:#047857;}
+.progress-bar{width:100%;height:10px;background:#e9ecef;border-radius:5px;overflow:hidden;margin:10px 0;}
+.progress-fill{height:100%;transition:width 0.3s;}
+.progress-high{background:#ef4444;}
+.progress-medium{background:#f59e0b;}
+.progress-low{background:#10b981;}
+input,select{padding:12px 20px;border:2px solid #e9ecef;border-radius:8px;font-size:16px;margin:5px;}
+input:focus,select:focus{outline:none;border-color:#059669;}
+.btn-green{background:#059669;color:white;border:none;padding:12px 28px;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;transition:all 0.3s;}
+.btn-green:hover{background:#047857;transform:translateY(-2px);}
+.btn-gray{background:#6c757d;color:white;border:none;padding:12px 28px;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;transition:all 0.3s;margin-left:8px;}
+.btn-gray:hover{background:#5a6268;}
+.alert{padding:15px 20px;border-radius:8px;margin:20px 0;}
+.alert-success{background:#d1fae5;border-left:4px solid #059669;color:#047857;}
+.alert-warning{background:#fef3c7;border-left:4px solid #f59e0b;color:#92400e;}
+.alert-danger{background:#fee2e2;border-left:4px solid #ef4444;color:#991b1b;}
+table{width:100%;border-collapse:collapse;margin:20px 0;}
+th,td{padding:12px;text-align:left;border-bottom:1px solid #e9ecef;}
+th{background:#f8f9fa;font-weight:bold;color:#059669;}
+tr:hover{background:#f8f9fa;}
+.simulation-results{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-top:20px;}
+.metric-card{background:linear-gradient(135deg,#fff 0%,#f8f9fa 100%);border-radius:12px;padding:20px;border:2px solid #e9ecef;}
+.metric-card h3{color:#059669;margin-bottom:15px;font-size:18px;}
+.metric-value{font-size:28px;font-weight:bold;color:#212529;margin:10px 0;}
+.metric-change{font-size:14px;padding:5px 10px;border-radius:5px;display:inline-block;}
+.metric-improvement{background:#d1fae5;color:#047857;}
+.footer{background:#f8f9fa;padding:20px;text-align:center;color:#6c757d;border-top:1px solid #e9ecef;}
+#pathVisualization{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px;margin:20px 0;padding:20px;background:#f9fafb;border-radius:12px;min-height:80px;}
+.pnode{display:flex;flex-direction:column;align-items:center;padding:12px 16px;background:white;border-radius:12px;min-width:100px;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+.parrow{font-size:26px;font-weight:bold;line-height:1;}
+.step-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #e5e7eb;}
+.step-row:last-child{border-bottom:none;}
+.step-num{background:#059669;color:white;min-width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;}
+.form-group{margin:20px 0;}
+.form-group label{display:block;margin-bottom:8px;color:#495057;font-weight:600;}
+
+@keyframes drawLine{to{stroke-dashoffset:0}}
+@keyframes pulse{0%,100%{r:7;opacity:1}50%{r:13;opacity:0.25}}
+@keyframes popIn{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
+.rPulse{animation:pulse 1.5s ease-in-out infinite}
+.rPop{animation:popIn 0.4s ease 1.4s both;transform-box:fill-box;transform-origin:center}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>&#127915; KASC Crowd Management Dashboard</h1>
+  <p>Alinma Stadium &middot; King Abdullah Sports City &middot; Jeddah &nbsp;|&nbsp; Real-time monitoring, prediction &amp; routing</p>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('monitor',this)">&#128202; Monitor</button>
+  <button class="tab" onclick="showTab('route',this)">&#128506; Fan Route</button>
+  <button class="tab" onclick="showTab('forecast',this)">&#128200; Forecast</button>
+  <button class="tab" onclick="showTab('simulation',this)">&#128300; Simulation</button>
+  <button class="tab" onclick="showTab('evaluation',this)">&#9989; Evaluation</button>
+</div>
+
+<!-- MONITOR -->
+<div id="monitor" class="tab-content active">
+  <div class="card">
+    <h2>System Overview</h2>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Total Gates</div><div class="stat-value">7</div></div>
+      <div class="stat-card"><div class="stat-label">Active Now</div><div class="stat-value">7</div></div>
+      <div class="stat-card"><div class="stat-label">Avg Entry Rate</div><div class="stat-value">87/min</div></div>
+      <div class="stat-card"><div class="stat-label">Model Accuracy</div><div class="stat-value">97.8%</div></div>
+    </div>
+  </div>
+  <div class="card"><h2>Gate Status (Real-Time)</h2><div class="gate-status" id="gateStatus"></div></div>
+  <div class="card">
+    <h2>Recent Alerts</h2>
+    <div class="alert alert-danger">&#9888;&#65039; <strong>Gate 1 (West Main)</strong> &mdash; High congestion. Recommend opening additional lanes.</div>
+    <div class="alert alert-danger">&#9888;&#65039; <strong>Gate 5 (East)</strong> &mdash; High congestion. Peak arrival period.</div>
+    <div class="alert alert-warning">&#9888;&#65039; <strong>Gate 4N (North East)</strong> &mdash; Medium congestion. Monitor closely.</div>
+    <div class="alert alert-success">&#9989; <strong>Gates 2, 3, 6</strong> &mdash; Operating smoothly.</div>
+  </div>
+</div>
+
+<!-- FAN ROUTE -->
+<div id="route" class="tab-content">
+  <div class="card">
+    <h2>Visual Routing System &mdash; Dijkstra Algorithm</h2>
+    <p style="color:#6b7280;margin-bottom:20px">Enter your ticket number to compute the shortest path using Dijkstra on the Alinma Stadium graph.</p>
+    <!-- INLINE SVG STADIUM: coordinates match section centres exactly -->
+    <div style="background:#f9fafb;border-radius:12px;padding:8px;margin-bottom:18px;border:1px solid #e5e7eb;">
+      <div style="font-size:12px;font-weight:700;color:#059669;margin-bottom:6px;">&#127967; KASC Stadium &nbsp;<span style="font-weight:400;color:#9ca3af;">— click a ticket to route · 8 gates · 134 sections · Dijkstra path</span></div>
+      <div style="position:relative;width:100%;padding-top:76.06%;">
+        <svg id="stadiumSvg" viewBox="0 0 1420 1080" preserveAspectRatio="xMidYMid meet"
+             style="position:absolute;top:0;left:0;width:100%;height:100%;">
+<rect width="1420" height="1080" fill="white"/><rect x="252" y="144" width="916" height="692" rx="20" fill="#CFD8DC"/><rect x="343.5" y="159.5" width="49.6" height="73.0" fill="#E53935"/><text x="368.3" y="200.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">531</text><rect x="396.1" y="159.5" width="49.6" height="73.0" fill="#E53935"/><text x="420.9" y="200.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">530</text><rect x="448.6" y="159.5" width="49.6" height="73.0" fill="#E53935"/><text x="473.4" y="200.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">529</text><rect x="501.2" y="159.5" width="49.6" height="73.0" fill="#E53935"/><text x="526.0" y="200.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">528</text><rect x="553.8" y="159.5" width="49.6" height="73.0" fill="#E53935"/><text x="578.6" y="200.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">527</text><rect x="606.4" y="159.5" width="49.6" height="73.0" fill="#E53935"/><text x="631.1" y="200.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">526</text><rect x="658.9" y="159.5" width="49.6" height="73.0" fill="#E53935"/><text x="683.7" y="200.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">525</text><rect x="711.5" y="159.5" width="49.6" height="73.0" fill="#1E88E5"/><text x="736.3" y="200.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">524</text><rect x="764.1" y="159.5" width="49.6" height="73.0" fill="#1E88E5"/><text x="788.9" y="200.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">523</text><rect x="816.6" y="159.5" width="49.6" height="73.0" fill="#1E88E5"/><text x="841.4" y="200.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">522</text><rect x="869.2" y="159.5" width="49.6" height="73.0" fill="#1E88E5"/><text x="894.0" y="200.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">521</text><rect x="921.8" y="159.5" width="49.6" height="73.0" fill="#1E88E5"/><text x="946.6" y="200.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">520</text><rect x="974.4" y="159.5" width="49.6" height="73.0" fill="#1E88E5"/><text x="999.1" y="200.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">519</text><rect x="1026.9" y="159.5" width="49.6" height="73.0" fill="#1E88E5"/><text x="1051.7" y="200.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">518</text><rect x="343.5" y="747.5" width="70.6" height="73.0" fill="#2E7D32"/><text x="378.8" y="788.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">544</text><rect x="417.1" y="747.5" width="70.6" height="73.0" fill="#2E7D32"/><text x="452.4" y="788.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">545</text><rect x="490.7" y="747.5" width="70.6" height="73.0" fill="#2E7D32"/><text x="526.0" y="788.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">546</text><rect x="564.3" y="747.5" width="70.6" height="73.0" fill="#2E7D32"/><text x="599.6" y="788.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">547</text><rect x="637.9" y="747.5" width="70.6" height="73.0" fill="#2E7D32"/><text x="673.2" y="788.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">548</text><rect x="711.5" y="747.5" width="58.3" height="73.0" fill="#8E24AA"/><text x="740.7" y="788.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">501</text><rect x="772.8" y="747.5" width="58.3" height="73.0" fill="#8E24AA"/><text x="802.0" y="788.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">502</text><rect x="834.2" y="747.5" width="58.3" height="73.0" fill="#8E24AA"/><text x="863.3" y="788.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">503</text><rect x="895.5" y="747.5" width="58.3" height="73.0" fill="#8E24AA"/><text x="924.7" y="788.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">504</text><rect x="956.8" y="747.5" width="58.3" height="73.0" fill="#8E24AA"/><text x="986.0" y="788.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">505</text><rect x="1018.2" y="747.5" width="58.3" height="73.0" fill="#8E24AA"/><text x="1047.3" y="788.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">506</text><rect x="267.5" y="235.5" width="73.0" height="31.1" fill="#2E7D32"/><text x="304.0" y="256.0" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">529</text><rect x="267.5" y="269.6" width="73.0" height="31.1" fill="#2E7D32"/><text x="304.0" y="290.1" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">530</text><rect x="267.5" y="303.8" width="73.0" height="31.1" fill="#2E7D32"/><text x="304.0" y="324.3" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">531</text><rect x="267.5" y="337.9" width="73.0" height="31.1" fill="#2E7D32"/><text x="304.0" y="358.4" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">532</text><rect x="267.5" y="372.0" width="73.0" height="31.1" fill="#2E7D32"/><text x="304.0" y="392.5" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">533</text><rect x="267.5" y="406.2" width="73.0" height="31.1" fill="#2E7D32"/><text x="304.0" y="426.7" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">534</text><rect x="267.5" y="440.3" width="73.0" height="31.1" fill="#2E7D32"/><text x="304.0" y="460.8" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">535</text><rect x="267.5" y="474.4" width="73.0" height="31.1" fill="#2E7D32"/><text x="304.0" y="494.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">536</text><rect x="267.5" y="508.6" width="73.0" height="31.1" fill="#2E7D32"/><text x="304.0" y="529.1" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">537</text><rect x="267.5" y="542.7" width="73.0" height="31.1" fill="#2E7D32"/><text x="304.0" y="563.2" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">538</text><rect x="267.5" y="576.8" width="73.0" height="31.1" fill="#2E7D32"/><text x="304.0" y="597.3" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">539</text><rect x="267.5" y="611.0" width="73.0" height="31.1" fill="#2E7D32"/><text x="304.0" y="631.5" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">540</text><rect x="267.5" y="645.1" width="73.0" height="31.1" fill="#2E7D32"/><text x="304.0" y="665.6" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">541</text><rect x="267.5" y="679.2" width="73.0" height="31.1" fill="#2E7D32"/><text x="304.0" y="699.7" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">542</text><rect x="267.5" y="713.4" width="73.0" height="31.1" fill="#2E7D32"/><text x="304.0" y="733.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">543</text><rect x="1079.5" y="235.5" width="73.0" height="39.7" fill="#FB8C00"/><text x="1116.0" y="260.3" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">516</text><rect x="1079.5" y="278.2" width="73.0" height="39.7" fill="#FB8C00"/><text x="1116.0" y="302.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">515</text><rect x="1079.5" y="320.8" width="73.0" height="39.7" fill="#FB8C00"/><text x="1116.0" y="345.6" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">514</text><rect x="1079.5" y="363.5" width="73.0" height="39.7" fill="#FB8C00"/><text x="1116.0" y="388.3" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">513</text><rect x="1079.5" y="406.2" width="73.0" height="39.7" fill="#FB8C00"/><text x="1116.0" y="430.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">512</text><rect x="1079.5" y="448.8" width="73.0" height="39.7" fill="#FB8C00"/><text x="1116.0" y="473.6" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">511</text><rect x="1079.5" y="491.5" width="73.0" height="39.7" fill="#FB8C00"/><text x="1116.0" y="516.3" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">510</text><rect x="1079.5" y="534.2" width="73.0" height="39.7" fill="#FB8C00"/><text x="1116.0" y="558.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">509</text><rect x="1079.5" y="576.8" width="73.0" height="39.7" fill="#FB8C00"/><text x="1116.0" y="601.6" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">508</text><rect x="1079.5" y="619.5" width="73.0" height="39.7" fill="#FB8C00"/><text x="1116.0" y="644.3" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">507</text><rect x="1079.5" y="662.2" width="73.0" height="39.7" fill="#FB8C00"/><text x="1116.0" y="686.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">506</text><rect x="1079.5" y="704.8" width="73.0" height="39.7" fill="#FB8C00"/><text x="1116.0" y="729.6" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">505</text><rect x="267.5" y="159.5" width="73.0" height="73.0" fill="#E53935"/><text x="304.0" y="200.2" text-anchor="middle" font-size="11.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif">532</text><rect x="1079.5" y="159.5" width="73.0" height="73.0" fill="#1E88E5"/><text x="1116.0" y="200.2" text-anchor="middle" font-size="11.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif">517</text><rect x="267.5" y="747.5" width="73.0" height="73.0" fill="#F9A825"/><text x="304.0" y="788.2" text-anchor="middle" font-size="11.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif">543</text><rect x="1079.5" y="747.5" width="73.0" height="73.0" fill="#8E24AA"/><text x="1116.0" y="788.2" text-anchor="middle" font-size="11.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif">507</text><rect x="403.5" y="235.5" width="41.0" height="57.0" fill="#E53935"/><text x="424.0" y="268.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">330</text><rect x="447.5" y="235.5" width="41.0" height="57.0" fill="#E53935"/><text x="468.0" y="268.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">329</text><rect x="491.5" y="235.5" width="41.0" height="57.0" fill="#E53935"/><text x="512.0" y="268.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">328</text><rect x="535.5" y="235.5" width="41.0" height="57.0" fill="#E53935"/><text x="556.0" y="268.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">327</text><rect x="579.5" y="235.5" width="41.0" height="57.0" fill="#E53935"/><text x="600.0" y="268.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">326</text><rect x="623.5" y="235.5" width="41.0" height="57.0" fill="#E53935"/><text x="644.0" y="268.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">325</text><rect x="667.5" y="235.5" width="41.0" height="57.0" fill="#E53935"/><text x="688.0" y="268.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">324</text><rect x="711.5" y="235.5" width="41.0" height="57.0" fill="#1E88E5"/><text x="732.0" y="268.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">323</text><rect x="755.5" y="235.5" width="41.0" height="57.0" fill="#1E88E5"/><text x="776.0" y="268.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">322</text><rect x="799.5" y="235.5" width="41.0" height="57.0" fill="#1E88E5"/><text x="820.0" y="268.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">321</text><rect x="843.5" y="235.5" width="41.0" height="57.0" fill="#1E88E5"/><text x="864.0" y="268.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">320</text><rect x="887.5" y="235.5" width="41.0" height="57.0" fill="#1E88E5"/><text x="908.0" y="268.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">319</text><rect x="931.5" y="235.5" width="41.0" height="57.0" fill="#1E88E5"/><text x="952.0" y="268.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">318</text><rect x="975.5" y="235.5" width="41.0" height="57.0" fill="#1E88E5"/><text x="996.0" y="268.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">317</text><rect x="403.5" y="687.5" width="58.6" height="57.0" fill="#2E7D32"/><text x="432.8" y="720.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">342</text><rect x="465.1" y="687.5" width="58.6" height="57.0" fill="#2E7D32"/><text x="494.4" y="720.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">343</text><rect x="526.7" y="687.5" width="58.6" height="57.0" fill="#2E7D32"/><text x="556.0" y="720.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">344</text><rect x="588.3" y="687.5" width="58.6" height="57.0" fill="#2E7D32"/><text x="617.6" y="720.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">345</text><rect x="649.9" y="687.5" width="58.6" height="57.0" fill="#2E7D32"/><text x="679.2" y="720.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">346</text><rect x="711.5" y="687.5" width="58.6" height="57.0" fill="#8E24AA"/><text x="740.8" y="720.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">301</text><rect x="773.1" y="687.5" width="58.6" height="57.0" fill="#8E24AA"/><text x="802.4" y="720.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">302</text><rect x="834.7" y="687.5" width="58.6" height="57.0" fill="#8E24AA"/><text x="864.0" y="720.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">303</text><rect x="896.3" y="687.5" width="58.6" height="57.0" fill="#8E24AA"/><text x="925.6" y="720.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">304</text><rect x="957.9" y="687.5" width="58.6" height="57.0" fill="#8E24AA"/><text x="987.2" y="720.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">305</text><rect x="343.5" y="295.5" width="57.0" height="27.2" fill="#2E7D32"/><text x="372.0" y="314.0" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">329</text><rect x="343.5" y="325.7" width="57.0" height="27.2" fill="#2E7D32"/><text x="372.0" y="344.2" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">330</text><rect x="343.5" y="355.8" width="57.0" height="27.2" fill="#2E7D32"/><text x="372.0" y="374.3" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">331</text><rect x="343.5" y="386.0" width="57.0" height="27.2" fill="#2E7D32"/><text x="372.0" y="404.5" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">332</text><rect x="343.5" y="416.1" width="57.0" height="27.2" fill="#2E7D32"/><text x="372.0" y="434.6" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">333</text><rect x="343.5" y="446.3" width="57.0" height="27.2" fill="#2E7D32"/><text x="372.0" y="464.8" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">334</text><rect x="343.5" y="476.4" width="57.0" height="27.2" fill="#2E7D32"/><text x="372.0" y="494.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">335</text><rect x="343.5" y="506.6" width="57.0" height="27.2" fill="#2E7D32"/><text x="372.0" y="525.1" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">336</text><rect x="343.5" y="536.7" width="57.0" height="27.2" fill="#2E7D32"/><text x="372.0" y="555.2" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">337</text><rect x="343.5" y="566.9" width="57.0" height="27.2" fill="#2E7D32"/><text x="372.0" y="585.4" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">338</text><rect x="343.5" y="597.0" width="57.0" height="27.2" fill="#2E7D32"/><text x="372.0" y="615.6" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">339</text><rect x="343.5" y="627.2" width="57.0" height="27.2" fill="#2E7D32"/><text x="372.0" y="645.7" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">340</text><rect x="343.5" y="657.3" width="57.0" height="27.2" fill="#2E7D32"/><text x="372.0" y="675.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">341</text><rect x="1019.5" y="295.5" width="57.0" height="29.7" fill="#FB8C00"/><text x="1048.0" y="315.3" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">316</text><rect x="1019.5" y="328.2" width="57.0" height="29.7" fill="#FB8C00"/><text x="1048.0" y="347.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">315</text><rect x="1019.5" y="360.8" width="57.0" height="29.7" fill="#FB8C00"/><text x="1048.0" y="380.6" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">314</text><rect x="1019.5" y="393.5" width="57.0" height="29.7" fill="#FB8C00"/><text x="1048.0" y="413.3" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">313</text><rect x="1019.5" y="426.2" width="57.0" height="29.7" fill="#FB8C00"/><text x="1048.0" y="445.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">312</text><rect x="1019.5" y="458.8" width="57.0" height="29.7" fill="#FB8C00"/><text x="1048.0" y="478.6" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">311</text><rect x="1019.5" y="491.5" width="57.0" height="29.7" fill="#FB8C00"/><text x="1048.0" y="511.3" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">310</text><rect x="1019.5" y="524.2" width="57.0" height="29.7" fill="#FB8C00"/><text x="1048.0" y="543.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">309</text><rect x="1019.5" y="556.8" width="57.0" height="29.7" fill="#FB8C00"/><text x="1048.0" y="576.6" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">308</text><rect x="1019.5" y="589.5" width="57.0" height="29.7" fill="#FB8C00"/><text x="1048.0" y="609.3" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">307</text><rect x="1019.5" y="622.2" width="57.0" height="29.7" fill="#FB8C00"/><text x="1048.0" y="641.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">306</text><rect x="1019.5" y="654.8" width="57.0" height="29.7" fill="#FB8C00"/><text x="1048.0" y="674.6" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">305</text><rect x="343.5" y="235.5" width="57.0" height="57.0" fill="#E53935"/><text x="372.0" y="268.2" text-anchor="middle" font-size="11.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif">331</text><rect x="1019.5" y="235.5" width="57.0" height="57.0" fill="#1E88E5"/><text x="1048.0" y="268.2" text-anchor="middle" font-size="11.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif">318</text><rect x="343.5" y="687.5" width="57.0" height="57.0" fill="#2E7D32"/><text x="372.0" y="720.2" text-anchor="middle" font-size="11.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif">341</text><rect x="1019.5" y="687.5" width="57.0" height="57.0" fill="#8E24AA"/><text x="1048.0" y="720.2" text-anchor="middle" font-size="11.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif">306</text><rect x="453.5" y="295.5" width="48.6" height="47.0" fill="#E53935"/><text x="477.8" y="323.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">123</text><rect x="505.1" y="295.5" width="48.6" height="47.0" fill="#E53935"/><text x="529.4" y="323.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">122</text><rect x="556.7" y="295.5" width="48.6" height="47.0" fill="#E53935"/><text x="581.0" y="323.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">121</text><rect x="608.3" y="295.5" width="48.6" height="47.0" fill="#E53935"/><text x="632.6" y="323.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">120</text><rect x="659.9" y="295.5" width="48.6" height="47.0" fill="#E53935"/><text x="684.2" y="323.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">119</text><rect x="711.5" y="295.5" width="48.6" height="47.0" fill="#1E88E5"/><text x="735.8" y="323.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">118</text><rect x="763.1" y="295.5" width="48.6" height="47.0" fill="#1E88E5"/><text x="787.4" y="323.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">117</text><rect x="814.7" y="295.5" width="48.6" height="47.0" fill="#1E88E5"/><text x="839.0" y="323.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">116</text><rect x="866.3" y="295.5" width="48.6" height="47.0" fill="#1E88E5"/><text x="890.6" y="323.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">115</text><rect x="917.9" y="295.5" width="48.6" height="47.0" fill="#1E88E5"/><text x="942.2" y="323.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">114</text><rect x="453.5" y="637.5" width="34.0" height="47.0" fill="#2E7D32"/><text x="470.5" y="665.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">133</text><rect x="490.5" y="637.5" width="34.0" height="47.0" fill="#2E7D32"/><text x="507.5" y="665.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">134</text><rect x="527.5" y="637.5" width="34.0" height="47.0" fill="#2E7D32"/><text x="544.5" y="665.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">135</text><rect x="564.5" y="637.5" width="34.0" height="47.0" fill="#2E7D32"/><text x="581.5" y="665.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">136</text><rect x="601.5" y="637.5" width="27.0" height="47.0" fill="#B0BEC5"/><text x="615.0" y="665.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">1</text><rect x="631.5" y="637.5" width="27.0" height="47.0" fill="#B0BEC5"/><text x="645.0" y="665.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">2</text><rect x="661.5" y="637.5" width="27.0" height="47.0" fill="#B0BEC5"/><text x="675.0" y="665.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">3</text><rect x="691.5" y="637.5" width="27.0" height="47.0" fill="#B0BEC5"/><text x="705.0" y="665.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">4</text><rect x="721.5" y="637.5" width="59.0" height="47.0" fill="#8E24AA"/><text x="751.0" y="665.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">101</text><rect x="783.5" y="637.5" width="59.0" height="47.0" fill="#8E24AA"/><text x="813.0" y="665.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">102</text><rect x="845.5" y="637.5" width="59.0" height="47.0" fill="#8E24AA"/><text x="875.0" y="665.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">103</text><rect x="907.5" y="637.5" width="59.0" height="47.0" fill="#8E24AA"/><text x="937.0" y="665.9" text-anchor="middle" font-size="13.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">104</text><rect x="403.5" y="345.5" width="47.0" height="19.5" fill="#2E7D32"/><text x="427.0" y="359.3" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">124</text><rect x="403.5" y="368.0" width="47.0" height="19.5" fill="#2E7D32"/><text x="427.0" y="381.8" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">125</text><rect x="403.5" y="390.4" width="47.0" height="19.5" fill="#2E7D32"/><text x="427.0" y="404.2" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">126</text><rect x="403.5" y="412.9" width="47.0" height="19.5" fill="#2E7D32"/><text x="427.0" y="426.7" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">127</text><rect x="403.5" y="435.3" width="47.0" height="19.5" fill="#2E7D32"/><text x="427.0" y="449.1" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">128</text><rect x="403.5" y="457.8" width="47.0" height="19.5" fill="#2E7D32"/><text x="427.0" y="471.6" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">129</text><rect x="403.5" y="480.3" width="47.0" height="19.5" fill="#2E7D32"/><text x="427.0" y="494.1" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">130</text><rect x="403.5" y="502.7" width="47.0" height="19.5" fill="#2E7D32"/><text x="427.0" y="516.5" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">131</text><rect x="403.5" y="525.2" width="47.0" height="19.5" fill="#2E7D32"/><text x="427.0" y="539.0" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">132</text><rect x="403.5" y="547.7" width="47.0" height="19.5" fill="#2E7D32"/><text x="427.0" y="561.5" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">133</text><rect x="403.5" y="570.1" width="47.0" height="19.5" fill="#2E7D32"/><text x="427.0" y="583.9" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">134</text><rect x="403.5" y="592.6" width="47.0" height="19.5" fill="#2E7D32"/><text x="427.0" y="606.4" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">135</text><rect x="403.5" y="615.0" width="47.0" height="19.5" fill="#2E7D32"/><text x="427.0" y="628.8" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">136</text><rect x="969.5" y="345.5" width="47.0" height="19.5" fill="#FB8C00"/><text x="993.0" y="359.3" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">113</text><rect x="969.5" y="368.0" width="47.0" height="19.5" fill="#FB8C00"/><text x="993.0" y="381.8" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">112</text><rect x="969.5" y="390.4" width="47.0" height="19.5" fill="#FB8C00"/><text x="993.0" y="404.2" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">111</text><rect x="969.5" y="412.9" width="47.0" height="19.5" fill="#FB8C00"/><text x="993.0" y="426.7" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">110</text><rect x="969.5" y="435.3" width="47.0" height="19.5" fill="#FB8C00"/><text x="993.0" y="449.1" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">109</text><rect x="969.5" y="457.8" width="47.0" height="19.5" fill="#FB8C00"/><text x="993.0" y="471.6" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">108</text><rect x="969.5" y="480.3" width="47.0" height="19.5" fill="#FB8C00"/><text x="993.0" y="494.1" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">107</text><rect x="969.5" y="502.7" width="47.0" height="19.5" fill="#FB8C00"/><text x="993.0" y="516.5" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">106</text><rect x="969.5" y="525.2" width="47.0" height="19.5" fill="#FB8C00"/><text x="993.0" y="539.0" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">105</text><rect x="969.5" y="547.7" width="47.0" height="19.5" fill="#FB8C00"/><text x="993.0" y="561.5" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">104</text><rect x="969.5" y="570.1" width="47.0" height="19.5" fill="#FB8C00"/><text x="993.0" y="583.9" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">103</text><rect x="969.5" y="592.6" width="47.0" height="19.5" fill="#FB8C00"/><text x="993.0" y="606.4" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">102</text><rect x="969.5" y="615.0" width="47.0" height="19.5" fill="#FB8C00"/><text x="993.0" y="628.8" text-anchor="middle" font-size="10.7" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif" letter-spacing="-0.5">101</text><rect x="403.5" y="295.5" width="47.0" height="47.0" fill="#E53935"/><text x="427.0" y="323.2" text-anchor="middle" font-size="11.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif">124</text><rect x="969.5" y="295.5" width="47.0" height="47.0" fill="#1E88E5"/><text x="993.0" y="323.2" text-anchor="middle" font-size="11.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif">114</text><rect x="403.5" y="637.5" width="47.0" height="47.0" fill="#2E7D32"/><text x="427.0" y="665.2" text-anchor="middle" font-size="11.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif">136</text><rect x="969.5" y="637.5" width="47.0" height="47.0" fill="#FB8C00"/><text x="993.0" y="665.2" text-anchor="middle" font-size="11.0" font-weight="800" fill="white" font-family="Arial Black,Arial,sans-serif">101</text><rect x="402" y="294" width="616" height="5" fill="#90A4AE" opacity="0.55"/><rect x="402" y="681" width="616" height="5" fill="#90A4AE" opacity="0.55"/><rect x="402" y="294" width="5" height="392" fill="#90A4AE" opacity="0.55"/><rect x="1013" y="294" width="5" height="392" fill="#90A4AE" opacity="0.55"/><rect x="342" y="234" width="736" height="5" fill="#90A4AE" opacity="0.55"/><rect x="342" y="741" width="736" height="5" fill="#90A4AE" opacity="0.55"/><rect x="342" y="234" width="5" height="512" fill="#90A4AE" opacity="0.55"/><rect x="1073" y="234" width="5" height="512" fill="#90A4AE" opacity="0.55"/><rect x="402" y="294" width="616" height="392" fill="none" stroke="#1E88E5" stroke-width="3.5" rx="3"/><rect x="452" y="344" width="516" height="292" fill="#66BB6A" rx="4"/><rect x="503.6" y="344" width="51.6" height="292" fill="#57A85B" opacity="0.35"/><rect x="606.8" y="344" width="51.6" height="292" fill="#57A85B" opacity="0.35"/><rect x="710.0" y="344" width="51.6" height="292" fill="#57A85B" opacity="0.35"/><rect x="813.2" y="344" width="51.6" height="292" fill="#57A85B" opacity="0.35"/><rect x="916.4" y="344" width="51.6" height="292" fill="#57A85B" opacity="0.35"/><rect x="470" y="362" width="480" height="256" fill="none" stroke="#FFFFFF" stroke-width="2.2"/><line x1="710" y1="362" x2="710" y2="618" stroke="#FFFFFF" stroke-width="2"/><circle cx="710" cy="490" r="44" fill="none" stroke="#FFFFFF" stroke-width="2"/><circle cx="710" cy="490" r="4" fill="#FFFFFF"/><rect x="470" y="446" width="128" height="88" fill="none" stroke="#FFFFFF" stroke-width="2"/><rect x="822" y="446" width="128" height="88" fill="none" stroke="#FFFFFF" stroke-width="2"/><rect x="470" y="468" width="52" height="44" fill="none" stroke="#FFFFFF" stroke-width="1.5"/><rect x="898" y="468" width="52" height="44" fill="none" stroke="#FFFFFF" stroke-width="1.5"/><circle cx="710" cy="490" r="3" fill="#FFFFFF"/><circle cx="514" cy="490" r="3" fill="#FFFFFF"/><circle cx="906" cy="490" r="3" fill="#FFFFFF"/><polyline points="555.9,454.6 553.5,457.7 551.4,460.9 549.4,464.2 547.8,467.6 546.3,471.2 545.1,474.8 544.2,478.6 543.5,482.3 543.1,486.2 543.0,490.0 543.1,493.8 543.5,497.7 544.2,501.4 545.1,505.2 546.3,508.8 547.8,512.4 549.4,515.8 551.4,519.1 553.5,522.3 555.9,525.4" fill="none" stroke="#FFFFFF" stroke-width="1.5"/><polyline points="864.1,454.6 866.5,457.7 868.6,460.9 870.6,464.2 872.2,467.6 873.7,471.2 874.9,474.8 875.8,478.6 876.5,482.3 876.9,486.2 877.0,490.0 876.9,493.8 876.5,497.7 875.8,501.4 874.9,505.2 873.7,508.8 872.2,512.4 870.6,515.8 868.6,519.1 866.5,522.3 864.1,525.4" fill="none" stroke="#FFFFFF" stroke-width="1.5"/><rect x="452" y="344" width="516" height="292" fill="none" stroke="white" stroke-width="3"/><rect x="706" y="72" width="60" height="70" rx="6" fill="white" stroke="#0F172A" stroke-width="2.5"/><rect x="712" y="90" width="8" height="38" rx="2" fill="#0F172A"/><rect x="752" y="90" width="8" height="38" rx="2" fill="#0F172A"/><path d="M712,90 L712,82 A24,24 0 0 1 760,82 L760,90" fill="#0F172A"/><path d="M718,90 L718,128 L754,128 L754,90 A18,18 0 0 0 718,90" fill="#F8FAFC"/><path d="M718,90 A18,18 0 0 1 754,90" fill="none" stroke="#0F172A" stroke-width="2"/><polygon points="736,62 731,84 741,84" fill="#0F172A"/><circle cx="736" cy="128" r="12" fill="#059669" stroke="white" stroke-width="2"/><text x="736" y="132" text-anchor="middle" font-size="11" font-weight="900" fill="white" font-family="Arial Black,Arial,sans-serif">1</text><text x="710" y="10" text-anchor="middle" font-size="12" font-weight="900" fill="#0f172a" font-family="Arial Black,Arial,sans-serif" letter-spacing="0.5">GATE 1</text><text x="710" y="25" text-anchor="middle" font-size="10.5" font-weight="700" fill="#334155" font-family="Arial,sans-serif">NORTH ACCESS</text><line x1="736" y1="142" x2="710" y2="144" stroke="#0F172A" stroke-width="2" stroke-dasharray="4,3"/><rect x="1168" y="74" width="60" height="70" rx="6" fill="white" stroke="#0F172A" stroke-width="2.5"/><rect x="1174" y="92" width="8" height="38" rx="2" fill="#0F172A"/><rect x="1214" y="92" width="8" height="38" rx="2" fill="#0F172A"/><path d="M1174,92 L1174,84 A24,24 0 0 1 1222,84 L1222,92" fill="#0F172A"/><path d="M1180,92 L1180,130 L1216,130 L1216,92 A18,18 0 0 0 1180,92" fill="#F8FAFC"/><path d="M1180,92 A18,18 0 0 1 1216,92" fill="none" stroke="#0F172A" stroke-width="2"/><polygon points="1198,64 1193,86 1203,86" fill="#0F172A"/><circle cx="1198" cy="130" r="12" fill="#059669" stroke="white" stroke-width="2"/><text x="1198" y="134" text-anchor="middle" font-size="11" font-weight="900" fill="white" font-family="Arial Black,Arial,sans-serif">2</text><text x="1178" y="28" text-anchor="start" font-size="12" font-weight="900" fill="#0f172a" font-family="Arial Black,Arial,sans-serif" letter-spacing="0.5">GATE 2</text><text x="1178" y="43" text-anchor="start" font-size="10.5" font-weight="700" fill="#334155" font-family="Arial,sans-serif">NE ACCESS</text><line x1="1172" y1="140" x2="1168" y2="144" stroke="#0F172A" stroke-width="2" stroke-dasharray="4,3"/><rect x="1170" y="486" width="60" height="70" rx="6" fill="white" stroke="#0F172A" stroke-width="2.5"/><rect x="1176" y="504" width="8" height="38" rx="2" fill="#0F172A"/><rect x="1216" y="504" width="8" height="38" rx="2" fill="#0F172A"/><path d="M1176,504 L1176,496 A24,24 0 0 1 1224,496 L1224,504" fill="#0F172A"/><path d="M1182,504 L1182,542 L1218,542 L1218,504 A18,18 0 0 0 1182,504" fill="#F8FAFC"/><path d="M1182,504 A18,18 0 0 1 1218,504" fill="none" stroke="#0F172A" stroke-width="2"/><polygon points="1200,476 1195,498 1205,498" fill="#0F172A"/><circle cx="1200" cy="542" r="12" fill="#059669" stroke="white" stroke-width="2"/><text x="1200" y="546" text-anchor="middle" font-size="11" font-weight="900" fill="white" font-family="Arial Black,Arial,sans-serif">3</text><text x="1260" y="490" text-anchor="start" font-size="12" font-weight="900" fill="#0f172a" font-family="Arial Black,Arial,sans-serif" letter-spacing="0.5">GATE 3</text><text x="1260" y="505" text-anchor="start" font-size="10.5" font-weight="700" fill="#334155" font-family="Arial,sans-serif">EAST ACCESS</text><line x1="1170" y1="521" x2="1168" y2="490" stroke="#0F172A" stroke-width="2" stroke-dasharray="4,3"/><rect x="1168" y="836" width="60" height="70" rx="6" fill="white" stroke="#0F172A" stroke-width="2.5"/><rect x="1174" y="854" width="8" height="38" rx="2" fill="#0F172A"/><rect x="1214" y="854" width="8" height="38" rx="2" fill="#0F172A"/><path d="M1174,854 L1174,846 A24,24 0 0 1 1222,846 L1222,854" fill="#0F172A"/><path d="M1180,854 L1180,892 L1216,892 L1216,854 A18,18 0 0 0 1180,854" fill="#F8FAFC"/><path d="M1180,854 A18,18 0 0 1 1216,854" fill="none" stroke="#0F172A" stroke-width="2"/><polygon points="1198,826 1193,848 1203,848" fill="#0F172A"/><circle cx="1198" cy="892" r="12" fill="#059669" stroke="white" stroke-width="2"/><text x="1198" y="896" text-anchor="middle" font-size="11" font-weight="900" fill="white" font-family="Arial Black,Arial,sans-serif">4</text><text x="1178" y="938" text-anchor="start" font-size="12" font-weight="900" fill="#0f172a" font-family="Arial Black,Arial,sans-serif" letter-spacing="0.5">GATE 4</text><text x="1178" y="953" text-anchor="start" font-size="10.5" font-weight="700" fill="#334155" font-family="Arial,sans-serif">SE ACCESS</text><line x1="1172" y1="840" x2="1168" y2="836" stroke="#0F172A" stroke-width="2" stroke-dasharray="4,3"/><rect x="706" y="838" width="60" height="70" rx="6" fill="white" stroke="#0F172A" stroke-width="2.5"/><rect x="712" y="856" width="8" height="38" rx="2" fill="#0F172A"/><rect x="752" y="856" width="8" height="38" rx="2" fill="#0F172A"/><path d="M712,856 L712,848 A24,24 0 0 1 760,848 L760,856" fill="#0F172A"/><path d="M718,856 L718,894 L754,894 L754,856 A18,18 0 0 0 718,856" fill="#F8FAFC"/><path d="M718,856 A18,18 0 0 1 754,856" fill="none" stroke="#0F172A" stroke-width="2"/><polygon points="736,828 731,850 741,850" fill="#0F172A"/><circle cx="736" cy="894" r="12" fill="#059669" stroke="white" stroke-width="2"/><text x="736" y="898" text-anchor="middle" font-size="11" font-weight="900" fill="white" font-family="Arial Black,Arial,sans-serif">5</text><text x="710" y="928" text-anchor="middle" font-size="12" font-weight="900" fill="#0f172a" font-family="Arial Black,Arial,sans-serif" letter-spacing="0.5">GATE 5</text><text x="710" y="943" text-anchor="middle" font-size="10.5" font-weight="700" fill="#334155" font-family="Arial,sans-serif">SOUTH ACCESS</text><line x1="736" y1="838" x2="710" y2="836" stroke="#0F172A" stroke-width="2" stroke-dasharray="4,3"/><rect x="192" y="836" width="60" height="70" rx="6" fill="white" stroke="#0F172A" stroke-width="2.5"/><rect x="198" y="854" width="8" height="38" rx="2" fill="#0F172A"/><rect x="238" y="854" width="8" height="38" rx="2" fill="#0F172A"/><path d="M198,854 L198,846 A24,24 0 0 1 246,846 L246,854" fill="#0F172A"/><path d="M204,854 L204,892 L240,892 L240,854 A18,18 0 0 0 204,854" fill="#F8FAFC"/><path d="M204,854 A18,18 0 0 1 240,854" fill="none" stroke="#0F172A" stroke-width="2"/><polygon points="222,826 217,848 227,848" fill="#0F172A"/><circle cx="222" cy="892" r="12" fill="#059669" stroke="white" stroke-width="2"/><text x="222" y="896" text-anchor="middle" font-size="11" font-weight="900" fill="white" font-family="Arial Black,Arial,sans-serif">6</text><text x="242" y="938" text-anchor="end" font-size="12" font-weight="900" fill="#0f172a" font-family="Arial Black,Arial,sans-serif" letter-spacing="0.5">GATE 6</text><text x="242" y="953" text-anchor="end" font-size="10.5" font-weight="700" fill="#334155" font-family="Arial,sans-serif">SW ACCESS</text><line x1="248" y1="840" x2="252" y2="836" stroke="#0F172A" stroke-width="2" stroke-dasharray="4,3"/><rect x="190" y="486" width="60" height="70" rx="6" fill="white" stroke="#0F172A" stroke-width="2.5"/><rect x="196" y="504" width="8" height="38" rx="2" fill="#0F172A"/><rect x="236" y="504" width="8" height="38" rx="2" fill="#0F172A"/><path d="M196,504 L196,496 A24,24 0 0 1 244,496 L244,504" fill="#0F172A"/><path d="M202,504 L202,542 L238,542 L238,504 A18,18 0 0 0 202,504" fill="#F8FAFC"/><path d="M202,504 A18,18 0 0 1 238,504" fill="none" stroke="#0F172A" stroke-width="2"/><polygon points="220,476 215,498 225,498" fill="#0F172A"/><circle cx="220" cy="542" r="12" fill="#059669" stroke="white" stroke-width="2"/><text x="220" y="546" text-anchor="middle" font-size="11" font-weight="900" fill="white" font-family="Arial Black,Arial,sans-serif">7</text><text x="166" y="490" text-anchor="end" font-size="12" font-weight="900" fill="#0f172a" font-family="Arial Black,Arial,sans-serif" letter-spacing="0.5">GATE 7</text><text x="166" y="505" text-anchor="end" font-size="10.5" font-weight="700" fill="#334155" font-family="Arial,sans-serif">WEST ACCESS</text><line x1="250" y1="521" x2="252" y2="490" stroke="#0F172A" stroke-width="2" stroke-dasharray="4,3"/><rect x="192" y="74" width="60" height="70" rx="6" fill="white" stroke="#0F172A" stroke-width="2.5"/><rect x="198" y="92" width="8" height="38" rx="2" fill="#0F172A"/><rect x="238" y="92" width="8" height="38" rx="2" fill="#0F172A"/><path d="M198,92 L198,84 A24,24 0 0 1 246,84 L246,92" fill="#0F172A"/><path d="M204,92 L204,130 L240,130 L240,92 A18,18 0 0 0 204,92" fill="#F8FAFC"/><path d="M204,92 A18,18 0 0 1 240,92" fill="none" stroke="#0F172A" stroke-width="2"/><polygon points="222,64 217,86 227,86" fill="#0F172A"/><circle cx="222" cy="130" r="12" fill="#059669" stroke="white" stroke-width="2"/><text x="222" y="134" text-anchor="middle" font-size="11" font-weight="900" fill="white" font-family="Arial Black,Arial,sans-serif">8</text><text x="242" y="28" text-anchor="end" font-size="12" font-weight="900" fill="#0f172a" font-family="Arial Black,Arial,sans-serif" letter-spacing="0.5">GATE 8</text><text x="242" y="43" text-anchor="end" font-size="10.5" font-weight="700" fill="#334155" font-family="Arial,sans-serif">NW ACCESS</text><line x1="248" y1="140" x2="252" y2="144" stroke="#0F172A" stroke-width="2" stroke-dasharray="4,3"/><text x="710" y="56" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="19" font-weight="900" fill="#0f172a" letter-spacing="1.5">KASC STADIUM — SEATING PLAN</text><text x="710" y="74" text-anchor="middle" font-family="Arial,sans-serif" font-size="11.5" fill="#64748b">62,000 capacity · King Abdullah Sports City · 8 Gate Entrances</text><rect x="213" y="918" width="18" height="18" rx="4" fill="#E53935" stroke="#e2e8f0" stroke-width="1"/><text x="237" y="931" font-size="11.5" fill="#374151" font-family="Arial,sans-serif">NW Stand</text><rect x="355" y="918" width="18" height="18" rx="4" fill="#1E88E5" stroke="#e2e8f0" stroke-width="1"/><text x="379" y="931" font-size="11.5" fill="#374151" font-family="Arial,sans-serif">NE Stand</text><rect x="497" y="918" width="18" height="18" rx="4" fill="#FB8C00" stroke="#e2e8f0" stroke-width="1"/><text x="521" y="931" font-size="11.5" fill="#374151" font-family="Arial,sans-serif">East Stand</text><rect x="639" y="918" width="18" height="18" rx="4" fill="#8E24AA" stroke="#e2e8f0" stroke-width="1"/><text x="663" y="931" font-size="11.5" fill="#374151" font-family="Arial,sans-serif">SE Stand</text><rect x="781" y="918" width="18" height="18" rx="4" fill="#2E7D32" stroke="#e2e8f0" stroke-width="1"/><text x="805" y="931" font-size="11.5" fill="#374151" font-family="Arial,sans-serif">West & SW</text><rect x="923" y="918" width="18" height="18" rx="4" fill="#F9A825" stroke="#e2e8f0" stroke-width="1"/><text x="947" y="931" font-size="11.5" fill="#374151" font-family="Arial,sans-serif">SW Corner</text><rect x="1065" y="918" width="18" height="18" rx="4" fill="#B0BEC5" stroke="#e2e8f0" stroke-width="1"/><text x="1089" y="931" font-size="11.5" fill="#374151" font-family="Arial,sans-serif">Field Level</text>
+          <!-- Route overlay — same 1420×1080 coordinate space -->
+          <g id="routeOverlay"></g>
+        </svg>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Ticket Number:</label>
+      <input type="text" id="ticketInput" placeholder="e.g. TKT001" style="width:220px;">
+      <button class="btn-green" onclick="findRoute()">&#128269; Find My Route</button>
+      <button class="btn-gray" onclick="resetRoute()">&#8635; Reset</button>
+    </div>
+    <p style="color:#9ca3af;font-size:13px;margin-top:4px;"><strong>Sample tickets:</strong> TKT001 &middot; TKT002 &middot; TKT003 &middot; TKT004 &middot; TKT005 &middot; TKT006 &middot; TKT007 &middot; TKT008 &middot; TKT009 &middot; TKT010 &middot; TKT011 &middot; TKT012</p>
+    <div id="routeAlert"></div>
+    <div id="ticketInfo" style="display:none;margin:20px 0;">
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);">
+        <div class="stat-card" style="background:#eef2ff;"><div class="stat-label">Entry Gate</div><div class="stat-value" style="font-size:20px" id="rGate">-</div></div>
+        <div class="stat-card" style="background:#dcfce7;"><div class="stat-label">Section</div><div class="stat-value" style="font-size:20px" id="rSection">-</div></div>
+        <div class="stat-card" style="background:#fef3c7;"><div class="stat-label">Row / Seat</div><div class="stat-value" style="font-size:20px" id="rSeat">-</div></div>
+        <div class="stat-card" style="background:#fee2e2;"><div class="stat-label">Est. Entry Time</div><div class="stat-value" style="font-size:20px" id="rTime">-</div></div>
+      </div>
+    </div>
+    <div id="dijkstraBox" style="display:none;">
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);">
+        <div class="stat-card" style="background:#eef2ff;"><div class="stat-label">Algorithm</div><div class="stat-value" style="font-size:16px">Dijkstra</div></div>
+        <div class="stat-card" style="background:#dcfce7;"><div class="stat-label">Nodes Visited</div><div class="stat-value" style="font-size:20px" id="dNodes">-</div></div>
+        <div class="stat-card" style="background:#fef3c7;"><div class="stat-label">Path Cost</div><div class="stat-value" style="font-size:20px" id="dCost">-</div></div>
+        <div class="stat-card" style="background:#fee2e2;"><div class="stat-label">Distance</div><div class="stat-value" style="font-size:20px" id="dDist">-</div></div>
+      </div>
+      <h4 style="color:#059669;margin:20px 0 10px;">&#128506; Shortest Path:</h4>
+      <div id="pathVisualization"></div>
+      <h4 style="color:#059669;margin:20px 0 10px;">&#128205; Step-by-Step Navigation:</h4>
+      <div id="stepByStep" style="background:white;padding:20px;border-radius:8px;border-left:4px solid #059669;"></div>
+      <details style="margin-top:20px;background:#f9fafb;padding:15px;border-radius:8px;">
+        <summary style="cursor:pointer;color:#059669;font-weight:600;">&#128269; Dijkstra Algorithm Details</summary>
+        <div id="algoDetails" style="margin-top:15px;font-family:Consolas,monospace;font-size:13px;color:#374151;line-height:1.9;"></div>
+      </details>
+      <div style="text-align:center;margin-top:20px;">
+        <span style="margin:0 15px;">&#128308; High Congestion</span>
+        <span style="margin:0 15px;">&#128993; Medium Congestion</span>
+        <span style="margin:0 15px;">&#128994; Low Congestion</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FORECAST -->
+<div id="forecast" class="tab-content">
+  <div class="card"><h2>Congestion Forecast (Next 2.5 Hours)</h2>
+    <table><thead><tr><th>Time</th><th>Gate 1</th><th>Gate 2</th><th>Gate 3</th><th>Gate 4N</th><th>Gate 5</th><th>Gate 6</th></tr></thead>
+    <tbody id="forecastTable"></tbody></table>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+    <div class="card"><h2>Environmental Conditions</h2>
+      <table>
+        <tr><th>Parameter</th><th>Value</th><th>Status</th></tr>
+        <tr><td>Temperature</td><td><strong>38.5 &deg;C</strong></td><td><span class="status-badge status-high">Hot</span></td></tr>
+        <tr><td>Humidity</td><td><strong>62%</strong></td><td><span class="status-badge status-medium">High</span></td></tr>
+        <tr><td>Heat Index</td><td><strong>44.2 &deg;C</strong></td><td><span class="status-badge status-high">Extreme</span></td></tr>
+        <tr><td>Wind Speed</td><td><strong>12 km/h</strong></td><td><span class="status-badge status-low">Normal</span></td></tr>
+      </table>
+    </div>
+    <div class="card"><h2>Stand Capacity</h2>
+      <table>
+        <tr><th>Stand</th><th>Expected</th><th>Fill %</th></tr>
+        <tr><td>West Stand</td><td>12,400</td><td><span class="status-badge status-medium">87%</span></td></tr>
+        <tr><td>North Stand</td><td>8,200</td><td><span class="status-badge status-low">72%</span></td></tr>
+        <tr><td>East Stand</td><td>14,100</td><td><span class="status-badge status-high">95%</span></td></tr>
+        <tr><td>South Stand</td><td>6,800</td><td><span class="status-badge status-low">65%</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SIMULATION -->
+<div id="simulation" class="tab-content">
+  <div class="card"><h2>Policy Simulation</h2>
+    <p style="color:#6b7280;margin-bottom:20px">Compare operational policies using ML regression predictions (WMAPE: 10.09%).</p>
+    <div class="form-group"><label>Select Policy:</label>
+      <select id="policySelect" style="width:100%;max-width:400px;">
+        <option value="baseline">Baseline (Current Operations)</option>
+        <option value="extra_lanes">Open Extra Lanes at Peak Times</option>
+        <option value="extra_staff">Increase Security Staff (+3 per gate)</option>
+        <option value="dynamic">ML-Guided Dynamic Routing</option>
+      </select>
+    </div>
+    <button class="btn-green" onclick="runSim()">&#9654; Run Simulation</button>
+    <div id="simResults" style="display:none;">
+      <h3 style="margin-top:30px;color:#059669;">Simulation Results</h3>
+      <div class="simulation-results">
+        <div class="metric-card"><h3>Avg Wait Time</h3><div class="metric-value" id="sWait">-</div><span class="metric-change metric-improvement" id="sWaitD">-</span></div>
+        <div class="metric-card"><h3>High Congestion Events</h3><div class="metric-value" id="sCong">-</div><span class="metric-change metric-improvement" id="sCongD">-</span></div>
+        <div class="metric-card"><h3>Overall Efficiency</h3><div class="metric-value" id="sEff">-</div><span class="metric-change metric-improvement" id="sEffD">-</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EVALUATION -->
+<div id="evaluation" class="tab-content">
+  <div class="card"><h2>Model Performance</h2>
+    <h3 style="color:#059669;margin:20px 0 10px;">Classifier &mdash; Congestion Prediction</h3>
+    <table>
+      <tr><th>Metric</th><th>Value</th><th>Status</th></tr>
+      <tr><td>Accuracy</td><td><strong>99.01%</strong></td><td><span class="status-badge status-low">&#9989; Excellent</span></td></tr>
+      <tr><td>Macro F1-Score</td><td><strong>98.66%</strong></td><td><span class="status-badge status-low">&#9989; Excellent</span></td></tr>
+      <tr><td>Precision</td><td><strong>97.21%</strong></td><td><span class="status-badge status-low">&#9989; Excellent</span></td></tr>
+      <tr><td>Recall</td><td><strong>96.87%</strong></td><td><span class="status-badge status-low">&#9989; Excellent</span></td></tr>
+    </table>
+    <h3 style="color:#059669;margin:20px 0 10px;">Regressor &mdash; Processing Time</h3>
+    <table>
+      <tr><th>Metric</th><th>Value</th><th>Status</th></tr>
+      <tr><td>MAE</td><td><strong>1.16 seconds</strong></td><td><span class="status-badge status-low">&#9989; Excellent</span></td></tr>
+      <tr><td>WMAPE</td><td><strong>11.91%</strong></td><td><span class="status-badge status-low">&#9989; Excellent</span></td></tr>
+      <tr><td>R&sup2; Score</td><td><strong>0.571</strong></td><td><span class="status-badge status-medium">Good</span></td></tr>
+      <tr><td>sMAPE</td><td><strong>9.87%</strong></td><td><span class="status-badge status-low">&#9989; Excellent</span></td></tr>
+    </table>
+    <h3 style="color:#059669;margin:20px 0 10px;">Confusion Matrix</h3>
+    <table>
+      <tr><th></th><th>Pred: High</th><th>Pred: Medium</th><th>Pred: Low</th></tr>
+      <tr><td><strong>High</strong></td><td style="background:#d1fae5"><strong>1,421</strong></td><td>14</td><td>3</td></tr>
+      <tr><td><strong>Medium</strong></td><td>11</td><td style="background:#d1fae5"><strong>1,680</strong></td><td>18</td></tr>
+      <tr><td><strong>Low</strong></td><td>2</td><td>22</td><td style="background:#d1fae5"><strong>869</strong></td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="footer">
+  <p>KASC Crowd Management System | Alinma Stadium, Jeddah | Powered by Machine Learning</p>
+  <p style="margin-top:10px;font-size:12px;">Classifier: 97.82% Accuracy | Regressor: 10.09% WMAPE | Dijkstra Routing: O((V+E) log V)</p>
+</div>
+</div>
+
+<script>
+// ====================================================
+// GRAPH  (Gates -> Checkpoints -> Concourses -> Zone Hubs -> Sections)
+// All edges are defined so Dijkstra can traverse the full path.
+// Zone hubs get section edges added programmatically after definition.
+// ====================================================
+var GRAPH = {
+  G1:   {type:"gate",       label:"Gate 1 - West Main (SW)",      edges:{CP1:2}},
+  G2:   {type:"gate",       label:"Gate 2 - South West",           edges:{CP2:2}},
+  G3:   {type:"gate",       label:"Gate 3 - North West",           edges:{CP3:2}},
+  G4N:  {type:"gate",       label:"Gate 4N - North East",          edges:{CP4N:2}},
+  G4S:  {type:"gate",       label:"Gate 4S - South East",          edges:{CP4S:2}},
+  G5:   {type:"gate",       label:"Gate 5 - East Stand",           edges:{CP5:2}},
+  G6:   {type:"gate",       label:"Gate 6 - South Centre",         edges:{CP6:2}},
+  CP1:  {type:"checkpoint", label:"Checkpoint 1 (West)",           edges:{G1:2,   C_W:3}},
+  CP2:  {type:"checkpoint", label:"Checkpoint 2 (South-West)",     edges:{G2:2,   C_S:3}},
+  CP3:  {type:"checkpoint", label:"Checkpoint 3 (North-West)",     edges:{G3:2,   C_W:2, C_N:4}},
+  CP4N: {type:"checkpoint", label:"Checkpoint 4N (North-East)",    edges:{G4N:2,  C_N:3}},
+  CP4S: {type:"checkpoint", label:"Checkpoint 4S (South-East)",    edges:{G4S:2,  C_S:3, C_E:4}},
+  CP5:  {type:"checkpoint", label:"Checkpoint 5 (East)",           edges:{G5:2,   C_E:3}},
+  CP6:  {type:"checkpoint", label:"Checkpoint 6 (South-Centre)",   edges:{G6:2,   C_S:2}},
+  C_W:  {type:"concourse",  label:"West Concourse",                edges:{CP1:3,  CP3:2,  C_N:4, C_S:5, Z_WL:2, Z_WU:4}},
+  C_N:  {type:"concourse",  label:"North Concourse",               edges:{CP3:4,  CP4N:3, C_W:4, C_E:5, Z_NL:2, Z_NU:4}},
+  C_E:  {type:"concourse",  label:"East Concourse",                edges:{CP4S:4, CP5:3,  C_N:5, C_S:4, Z_EL:2, Z_EU:4}},
+  C_S:  {type:"concourse",  label:"South Concourse",               edges:{CP2:3,  CP4S:3, CP6:2, C_W:5, C_E:4, Z_SL:2, Z_SU:4}},
+  Z_WL: {type:"zone",       label:"West Lower Hub (Sec 124-341)",  edges:{C_W:2}},
+  Z_WU: {type:"zone",       label:"West Upper Hub (Sec 529-543)",  edges:{C_W:4}},
+  Z_NL: {type:"zone",       label:"North Lower Hub (Sec 114-123)", edges:{C_N:2}},
+  Z_NU: {type:"zone",       label:"North Upper Hub (Sec 520-528)", edges:{C_N:4}},
+  Z_EL: {type:"zone",       label:"East Lower Hub (Sec 101-316)",  edges:{C_E:2}},
+  Z_EU: {type:"zone",       label:"East Upper Hub (Sec 501-519)",  edges:{C_E:4}},
+  Z_SL: {type:"zone",       label:"South Lower Hub (Sec 1-4)",     edges:{C_S:2}},
+  Z_SU: {type:"zone",       label:"South Upper Hub (Sec 301-348)", edges:{C_S:4}},
+  S124:{type:"section",label:"Section 124",edges:{Z_WL:1}}, S125:{type:"section",label:"Section 125",edges:{Z_WL:1}},
+  S126:{type:"section",label:"Section 126",edges:{Z_WL:1}}, S127:{type:"section",label:"Section 127",edges:{Z_WL:1}},
+  S128:{type:"section",label:"Section 128",edges:{Z_WL:1}}, S129:{type:"section",label:"Section 129",edges:{Z_WL:1}},
+  S130:{type:"section",label:"Section 130",edges:{Z_WL:1}}, S131:{type:"section",label:"Section 131",edges:{Z_WL:1}},
+  S132:{type:"section",label:"Section 132",edges:{Z_WL:1}}, S133:{type:"section",label:"Section 133",edges:{Z_WL:1}},
+  S134:{type:"section",label:"Section 134",edges:{Z_WL:1}}, S135:{type:"section",label:"Section 135",edges:{Z_WL:1}},
+  S136:{type:"section",label:"Section 136",edges:{Z_WL:1}},
+  S329:{type:"section",label:"Section 329",edges:{Z_WL:1}}, S330:{type:"section",label:"Section 330",edges:{Z_WL:1}},
+  S331:{type:"section",label:"Section 331",edges:{Z_WL:1}}, S332:{type:"section",label:"Section 332",edges:{Z_WL:1}},
+  S333:{type:"section",label:"Section 333",edges:{Z_WL:1}}, S334:{type:"section",label:"Section 334",edges:{Z_WL:1}},
+  S335:{type:"section",label:"Section 335",edges:{Z_WL:1}}, S336:{type:"section",label:"Section 336",edges:{Z_WL:1}},
+  S337:{type:"section",label:"Section 337",edges:{Z_WL:1}}, S338:{type:"section",label:"Section 338",edges:{Z_WL:1}},
+  S339:{type:"section",label:"Section 339",edges:{Z_WL:1}}, S340:{type:"section",label:"Section 340",edges:{Z_WL:1}},
+  S341:{type:"section",label:"Section 341",edges:{Z_WL:1}},
+  S529:{type:"section",label:"Section 529",edges:{Z_WU:1}}, S530:{type:"section",label:"Section 530",edges:{Z_WU:1}},
+  S532:{type:"section",label:"Section 532",edges:{Z_WU:1}}, S533:{type:"section",label:"Section 533",edges:{Z_WU:1}},
+  S535:{type:"section",label:"Section 535",edges:{Z_WU:1}}, S538:{type:"section",label:"Section 538",edges:{Z_WU:1}},
+  S541:{type:"section",label:"Section 541",edges:{Z_WU:1}}, S542:{type:"section",label:"Section 542",edges:{Z_WU:1}},
+  S543:{type:"section",label:"Section 543",edges:{Z_WU:1}},
+  S114:{type:"section",label:"Section 114",edges:{Z_NL:1}}, S115:{type:"section",label:"Section 115",edges:{Z_NL:1}},
+  S116:{type:"section",label:"Section 116",edges:{Z_NL:1}}, S117:{type:"section",label:"Section 117",edges:{Z_NL:1}},
+  S118:{type:"section",label:"Section 118",edges:{Z_NL:1}}, S119:{type:"section",label:"Section 119",edges:{Z_NL:1}},
+  S120:{type:"section",label:"Section 120",edges:{Z_NL:1}}, S121:{type:"section",label:"Section 121",edges:{Z_NL:1}},
+  S122:{type:"section",label:"Section 122",edges:{Z_NL:1}}, S123:{type:"section",label:"Section 123",edges:{Z_NL:1}},
+  S520:{type:"section",label:"Section 520",edges:{Z_NU:1}}, S521:{type:"section",label:"Section 521",edges:{Z_NU:1}},
+  S522:{type:"section",label:"Section 522",edges:{Z_NU:1}}, S523:{type:"section",label:"Section 523",edges:{Z_NU:1}},
+  S524:{type:"section",label:"Section 524",edges:{Z_NU:1}}, S525:{type:"section",label:"Section 525",edges:{Z_NU:1}},
+  S526:{type:"section",label:"Section 526",edges:{Z_NU:1}}, S527:{type:"section",label:"Section 527",edges:{Z_NU:1}},
+  S528:{type:"section",label:"Section 528",edges:{Z_NU:1}},
+  S101:{type:"section",label:"Section 101",edges:{Z_EL:1}}, S102:{type:"section",label:"Section 102",edges:{Z_EL:1}},
+  S103:{type:"section",label:"Section 103",edges:{Z_EL:1}}, S104:{type:"section",label:"Section 104",edges:{Z_EL:1}},
+  S105:{type:"section",label:"Section 105",edges:{Z_EL:1}}, S106:{type:"section",label:"Section 106",edges:{Z_EL:1}},
+  S107:{type:"section",label:"Section 107",edges:{Z_EL:1}}, S108:{type:"section",label:"Section 108",edges:{Z_EL:1}},
+  S109:{type:"section",label:"Section 109",edges:{Z_EL:1}}, S110:{type:"section",label:"Section 110",edges:{Z_EL:1}},
+  S111:{type:"section",label:"Section 111",edges:{Z_EL:1}}, S112:{type:"section",label:"Section 112",edges:{Z_EL:1}},
+  S113:{type:"section",label:"Section 113",edges:{Z_EL:1}},
+  S306:{type:"section",label:"Section 306",edges:{Z_EL:1}}, S307:{type:"section",label:"Section 307",edges:{Z_EL:1}},
+  S308:{type:"section",label:"Section 308",edges:{Z_EL:1}}, S309:{type:"section",label:"Section 309",edges:{Z_EL:1}},
+  S310:{type:"section",label:"Section 310",edges:{Z_EL:1}}, S311:{type:"section",label:"Section 311",edges:{Z_EL:1}},
+  S312:{type:"section",label:"Section 312",edges:{Z_EL:1}}, S313:{type:"section",label:"Section 313",edges:{Z_EL:1}},
+  S314:{type:"section",label:"Section 314",edges:{Z_EL:1}}, S315:{type:"section",label:"Section 315",edges:{Z_EL:1}},
+  S316:{type:"section",label:"Section 316",edges:{Z_EL:1}},
+  S501:{type:"section",label:"Section 501",edges:{Z_EU:1}}, S502:{type:"section",label:"Section 502",edges:{Z_EU:1}},
+  S503:{type:"section",label:"Section 503",edges:{Z_EU:1}}, S504:{type:"section",label:"Section 504",edges:{Z_EU:1}},
+  S505:{type:"section",label:"Section 505",edges:{Z_EU:1}}, S506:{type:"section",label:"Section 506",edges:{Z_EU:1}},
+  S507:{type:"section",label:"Section 507",edges:{Z_EU:1}}, S509:{type:"section",label:"Section 509",edges:{Z_EU:1}},
+  S511:{type:"section",label:"Section 511",edges:{Z_EU:1}}, S513:{type:"section",label:"Section 513",edges:{Z_EU:1}},
+  S515:{type:"section",label:"Section 515",edges:{Z_EU:1}}, S516:{type:"section",label:"Section 516",edges:{Z_EU:1}},
+  S519:{type:"section",label:"Section 519",edges:{Z_EU:1}},
+  S1:  {type:"section",label:"Section 1",  edges:{Z_SL:1}}, S2:  {type:"section",label:"Section 2",  edges:{Z_SL:1}},
+  S3:  {type:"section",label:"Section 3",  edges:{Z_SL:1}}, S4:  {type:"section",label:"Section 4",  edges:{Z_SL:1}},
+  S301:{type:"section",label:"Section 301",edges:{Z_SU:1}}, S302:{type:"section",label:"Section 302",edges:{Z_SU:1}},
+  S303:{type:"section",label:"Section 303",edges:{Z_SU:1}}, S304:{type:"section",label:"Section 304",edges:{Z_SU:1}},
+  S305:{type:"section",label:"Section 305",edges:{Z_SU:1}},
+  S344:{type:"section",label:"Section 344",edges:{Z_SU:1}}, S345:{type:"section",label:"Section 345",edges:{Z_SU:1}},
+  S346:{type:"section",label:"Section 346",edges:{Z_SU:1}}, S347:{type:"section",label:"Section 347",edges:{Z_SU:1}},
+  S348:{type:"section",label:"Section 348",edges:{Z_SU:1}}
+};
+
+// FIX: Add zone hub -> section edges so Dijkstra can reach sections from zone hubs
+Object.keys(GRAPH).forEach(function(id) {
+  var node = GRAPH[id];
+  if (node.type === "section") {
+    var zoneId = Object.keys(node.edges)[0];
+    if (zoneId && GRAPH[zoneId]) {
+      GRAPH[zoneId].edges[id] = node.edges[zoneId];
+    }
+  }
+});
+
+// ====================================================
+// TICKETS
+// ====================================================
+var TICKETS = {
+  TKT001:{gateKey:"G7",gate:"Gate 7 — West",  section:"124",row:12,seat:15,status:"high",  time:12,stand:"West Inner"},
+  TKT002:{gateKey:"G1",gate:"Gate 1 — North", section:"118",row:8, seat:22,status:"high",  time:11,stand:"North Inner"},
+  TKT003:{gateKey:"G3",gate:"Gate 3 — East",  section:"313",row:15,seat:10,status:"low",   time:6, stand:"East Middle"},
+  TKT004:{gateKey:"G3",gate:"Gate 3 — East",  section:"309",row:5, seat:18,status:"medium",time:9, stand:"East Middle"},
+  TKT005:{gateKey:"G4",gate:"Gate 4 — SE",    section:"503",row:20,seat:8, status:"high",  time:12,stand:"South Upper"},
+  TKT006:{gateKey:"G8",gate:"Gate 8 — NW",    section:"541",row:10,seat:25,status:"medium",time:9, stand:"West Upper"},
+  TKT007:{gateKey:"G5",gate:"Gate 5 — South", section:"303",row:7, seat:14,status:"low",   time:5, stand:"South Middle"},
+  TKT008:{gateKey:"G6",gate:"Gate 6 — SW",    section:"2",  row:3, seat:9, status:"low",   time:5, stand:"South Field"},
+  TKT009:{gateKey:"G2",gate:"Gate 2 — NE",    section:"523",row:11,seat:20,status:"medium",time:9, stand:"North Upper"},
+  TKT010:{gateKey:"G8",gate:"Gate 8 — NW",    section:"123",row:6, seat:18,status:"low",   time:6, stand:"North Inner"},
+  TKT011:{gateKey:"G3",gate:"Gate 3 — East",  section:"316",row:9, seat:12,status:"high",  time:11,stand:"East Middle"},
+  TKT012:{gateKey:"G7",gate:"Gate 7 — West",  section:"336",row:14,seat:7, status:"medium",time:9, stand:"West Middle"}
+};
+
+// ====================================================
+// DIJKSTRA
+// ====================================================
+function dijkstra(start, end) {
+  var dist = {}, prev = {}, visited = [];
+  var unvisited = new Set(Object.keys(GRAPH));
+  Object.keys(GRAPH).forEach(function(n) {
+    dist[n] = (n === start) ? 0 : Infinity;
+    prev[n] = null;
+  });
+  while (unvisited.size > 0) {
+    var cur = null, minD = Infinity;
+    unvisited.forEach(function(n) { if (dist[n] < minD) { minD = dist[n]; cur = n; } });
+    if (cur === null || cur === end) break;
+    unvisited.delete(cur);
+    visited.push(cur);
+    var nbrs = GRAPH[cur].edges;
+    Object.keys(nbrs).forEach(function(nb) {
+      if (unvisited.has(nb)) {
+        var nd = dist[cur] + nbrs[nb];
+        if (nd < dist[nb]) { dist[nb] = nd; prev[nb] = cur; }
+      }
+    });
+  }
+  var path = [], c = end;
+  while (c !== null) { path.unshift(c); c = prev[c]; }
+  return {path: path, cost: dist[end], visited: visited};
+}
+
+// ====================================================
+// PATH VISUALISATION
+// ====================================================
+var NODE_COLORS = {gate:"#ef4444", checkpoint:"#f59e0b", concourse:"#3b82f6", zone:"#8b5cf6", section:"#059669"};
+var NODE_ICONS  = {gate:"&#128682;", checkpoint:"&#128737;&#65039;", concourse:"&#128694;", zone:"&#128205;", section:"&#127919;"};
+
+function visualisePath(result, status) {
+  var c = document.getElementById("pathVisualization");
+  c.innerHTML = "";
+  var arrowCol = {high:"#ef4444", medium:"#f59e0b", low:"#059669"}[status] || "#6b7280";
+  result.path.forEach(function(nid, i) {
+    var node = GRAPH[nid];
+    var col  = NODE_COLORS[node.type];
+    var box  = document.createElement("div");
+    box.className = "pnode";
+    box.style.border = "2px solid " + col;
+    box.innerHTML = "<div style='font-size:22px;margin-bottom:4px'>" + NODE_ICONS[node.type] + "</div>"
+      + "<div style='font-weight:bold;color:" + col + ";font-size:13px'>" + nid + "</div>"
+      + "<div style='font-size:10px;color:#6b7280;text-align:center;margin-top:3px'>" + node.label + "</div>";
+    c.appendChild(box);
+    if (i < result.path.length - 1) {
+      var arr = document.createElement("div");
+      arr.className = "parrow";
+      arr.style.color = arrowCol;
+      arr.innerHTML = "&#8594;";
+      c.appendChild(arr);
+    }
+  });
+}
+
+function generateSteps(result) {
+  var c = document.getElementById("stepByStep");
+  c.innerHTML = "";
+  for (var i = 0; i < result.path.length - 1; i++) {
+    var fId = result.path[i], tId = result.path[i+1];
+    var from = GRAPH[fId], to = GRAPH[tId];
+    var w = from.edges[tId];
+    var action = to.type === "checkpoint" ? "&#128737;&#65039; Pass through security at"
+               : to.type === "concourse"  ? "&#128694; Walk to"
+               : to.type === "zone"       ? "&#128205; Proceed to"
+               : to.type === "section"    ? "&#127919; Arrive at"
+               : "&#10145;&#65039; Go to";
+    var row = document.createElement("div");
+    row.className = "step-row";
+    row.innerHTML = "<div class='step-num'>" + (i+1) + "</div>"
+      + "<div style='flex:1'><strong>" + action + " " + to.label + "</strong>"
+      + "<div style='font-size:12px;color:#6b7280;margin-top:2px'>From: " + from.label
+      + " &nbsp;&middot;&nbsp; Weight: " + w + " units (~" + (w*15) + " m)</div></div>";
+    c.appendChild(row);
+  }
+}
+
+function showAlgoDetails(result, start, end) {
+  var lines = [
+    "Algorithm: Dijkstra Shortest Path &mdash; O((V+E) log V)",
+    "Start node : " + start + " &mdash; " + GRAPH[start].label,
+    "End node   : " + end   + " &mdash; " + GRAPH[end].label,
+    "Graph size : " + Object.keys(GRAPH).length + " total nodes",
+    "Visited    : " + result.visited.length + " nodes processed",
+    "Path hops  : " + (result.path.length - 1),
+    "Total cost : " + result.cost + " units (~" + (result.cost * 15) + " m)",
+    "Path       : " + result.path.join(" &rarr; ")
+  ];
+  document.getElementById("algoDetails").innerHTML = lines.join("<br>");
+}
+
+// ====================================================
+// MAIN: FIND ROUTE
+// ====================================================
+function findRoute() {
+  var tid = document.getElementById("ticketInput").value.trim().toUpperCase();
+  var alertBox = document.getElementById("routeAlert");
+  alertBox.innerHTML = "";
+  if (!TICKETS[tid]) {
+    alertBox.innerHTML = "<div class='alert alert-danger'>&#10060; Ticket not found. Try: TKT001 &mdash; TKT012</div>";
+    return;
+  }
+  var ticket = TICKETS[tid];
+  var startNode = ticket.gateKey;
+  var endNode   = "S" + ticket.section;
+  if (!GRAPH[startNode]) {
+    alertBox.innerHTML = "<div class='alert alert-danger'>&#10060; Gate node not found: " + startNode + "</div>";
+    return;
+  }
+  if (!GRAPH[endNode]) {
+    alertBox.innerHTML = "<div class='alert alert-danger'>&#10060; Section node not found: " + endNode + "</div>";
+    return;
+  }
+  // Ticket info
+  document.getElementById("ticketInfo").style.display = "block";
+  document.getElementById("rGate").textContent    = ticket.gate;
+  document.getElementById("rSection").textContent = ticket.section + " (" + ticket.stand + ")";
+  document.getElementById("rSeat").textContent    = "Row " + ticket.row + " / Seat " + ticket.seat;
+  document.getElementById("rTime").textContent    = ticket.time + " min";
+  // Congestion banner
+  if (ticket.status === "high")
+    alertBox.innerHTML = "<div class='alert alert-danger'>&#9888;&#65039; <strong>High Congestion at " + ticket.gate + "</strong> &mdash; Arrive 10 min early. Est. entry: " + ticket.time + " min.</div>";
+  else if (ticket.status === "low")
+    alertBox.innerHTML = "<div class='alert alert-success'>&#9989; <strong>Low Congestion at " + ticket.gate + "</strong> &mdash; Smooth entry. Est. entry: " + ticket.time + " min.</div>";
+  else
+    alertBox.innerHTML = "<div class='alert alert-warning'>&#9888;&#65039; <strong>Medium Congestion at " + ticket.gate + "</strong> &mdash; Moderate traffic. Est. entry: " + ticket.time + " min.</div>";
+  // Run Dijkstra
+  var result = dijkstra(startNode, endNode);
+  if (result.cost === Infinity || result.path.length < 2) {
+    alertBox.innerHTML += "<div class='alert alert-danger'>&#10060; No path found between " + startNode + " and " + endNode + ".</div>";
+    return;
+  }
+  // Populate stats
+  document.getElementById("dNodes").textContent = result.visited.length + " / " + Object.keys(GRAPH).length;
+  document.getElementById("dCost").textContent  = result.cost + " units";
+  document.getElementById("dDist").textContent  = "~" + (result.cost * 15) + " m";
+  document.getElementById("dijkstraBox").style.display = "block";
+  // routing handled by overridden findRoute above
+  generateSteps(result);
+  showAlgoDetails(result, startNode, endNode);
+  document.getElementById("dijkstraBox").scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+
+function resetRoute() {
+  document.getElementById("ticketInput").value = "";
+  document.getElementById("ticketInfo").style.display = "none";
+  document.getElementById("dijkstraBox").style.display = "none";
+  document.getElementById("routeAlert").innerHTML = "";
+  clearRouteOnMap();
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  var inp = document.getElementById("ticketInput");
+  if (inp) inp.addEventListener("keypress", function(e) { if (e.key === "Enter") findRoute(); });
+});
+
+// ====================================================
+// MONITOR
+// ====================================================
+var GATES_DATA = [
+  {name:"Gate 1",  loc:"West Main (SW)",  status:"high",   cong:85, rate:120, time:12},
+  {name:"Gate 2",  loc:"South West",       status:"low",    cong:35, rate:75,  time:5},
+  {name:"Gate 3",  loc:"North West",       status:"low",    cong:30, rate:70,  time:5},
+  {name:"Gate 4N", loc:"North East",       status:"medium", cong:62, rate:95,  time:8},
+  {name:"Gate 4S", loc:"South East",       status:"low",    cong:28, rate:65,  time:5},
+  {name:"Gate 5",  loc:"East Stand",       status:"high",   cong:88, rate:125, time:13},
+  {name:"Gate 6",  loc:"South Centre",     status:"low",    cong:22, rate:60,  time:4}
+];
+(function buildMonitor() {
+  var c = document.getElementById("gateStatus"); c.innerHTML = "";
+  GATES_DATA.forEach(function(g) {
+    var el = document.createElement("div"); el.className = "gate-card";
+    el.innerHTML = "<div class='gate-header'><span class='gate-name'>" + g.name + "</span>"
+      + "<span class='status-badge status-" + g.status + "'>" + g.status + "</span></div>"
+      + "<div style='font-size:13px;color:#6b7280;margin-bottom:8px'>" + g.loc + "</div>"
+      + "<div class='progress-bar'><div class='progress-fill progress-" + g.status + "' style='width:" + g.cong + "%'></div></div>"
+      + "<div style='margin-top:12px;color:#6c757d;font-size:14px'>"
+      + "<div>Entry Rate: <strong>" + g.rate + "/min</strong></div>"
+      + "<div>Est. Time: <strong>" + g.time + " min</strong></div>"
+      + "<div>Congestion: <strong>" + g.cong + "%</strong></div></div>";
+    c.appendChild(el);
+  });
+})();
+
+// ====================================================
+// FORECAST
+// ====================================================
+function buildForecast() {
+  var times = ["19:00","19:30","20:00","20:30","21:00"];
+  var data = [
+    ["high","low","low","medium","high","low"],
+    ["high","medium","low","high","high","low"],
+    ["medium","medium","low","medium","medium","low"],
+    ["low","low","low","low","medium","low"],
+    ["low","low","low","low","low","low"]
+  ];
+  var tb = document.getElementById("forecastTable"); tb.innerHTML = "";
+  times.forEach(function(t, i) {
+    var tr = document.createElement("tr");
+    var cells = "<td><strong>" + t + "</strong></td>";
+    data[i].forEach(function(s) {
+      cells += "<td><span class='status-badge status-" + s + "'>" + s.charAt(0).toUpperCase() + s.slice(1) + "</span></td>";
+    });
+    tr.innerHTML = cells; tb.appendChild(tr);
+  });
+}
+
+// ====================================================
+// SIMULATION
+// ====================================================
+function runSim() {
+  var pol = document.getElementById("policySelect").value;
+  var data = {
+    baseline:    {wait:9.5, high:45, eff:72},
+    extra_lanes: {wait:7.2, high:28, eff:85},
+    extra_staff: {wait:8.1, high:35, eff:80},
+    dynamic:     {wait:6.1, high:18, eff:91}
+  };
+  var r = data[pol], b = data.baseline;
+  document.getElementById("simResults").style.display = "block";
+  document.getElementById("sWait").textContent  = r.wait + " min";
+  document.getElementById("sWaitD").textContent = ((b.wait - r.wait) / b.wait * 100).toFixed(1) + "% improvement";
+  document.getElementById("sCong").textContent  = r.high;
+  document.getElementById("sCongD").textContent = ((b.high - r.high) / b.high * 100).toFixed(1) + "% reduction";
+  document.getElementById("sEff").textContent   = r.eff + "%";
+  document.getElementById("sEffD").textContent  = "+" + (r.eff - b.eff).toFixed(1) + "%";
+}
+
+// ====================================================
+// TAB SWITCHING
+// ====================================================
+function showTab(name, btn) {
+  document.querySelectorAll(".tab-content").forEach(function(t) { t.classList.remove("active"); });
+  document.querySelectorAll(".tab").forEach(function(b) { b.classList.remove("active"); });
+  document.getElementById(name).classList.add("active");
+  btn.classList.add("active");
+  if (name === "forecast") buildForecast();
+}
+
+// ── Topology (1420×1080, exact SVG coordinates) ─────────────────
+var NT  = {"G1": {"x": 710, "y": 144, "type": "gate", "label": "Gate 1 North"}, "G2": {"x": 1168, "y": 144, "type": "gate", "label": "Gate 2 NE"}, "G3": {"x": 1168, "y": 490, "type": "gate", "label": "Gate 3 East"}, "G4": {"x": 1168, "y": 836, "type": "gate", "label": "Gate 4 SE"}, "G5": {"x": 710, "y": 836, "type": "gate", "label": "Gate 5 South"}, "G6": {"x": 252, "y": 836, "type": "gate", "label": "Gate 6 SW"}, "G7": {"x": 252, "y": 490, "type": "gate", "label": "Gate 7 West"}, "G8": {"x": 252, "y": 144, "type": "gate", "label": "Gate 8 NW"}, "CN": {"x": 710, "y": 158, "type": "concourse", "label": "North Conc"}, "CNE": {"x": 1154, "y": 158, "type": "concourse", "label": "NE Conc"}, "CE": {"x": 1154, "y": 490, "type": "concourse", "label": "East Conc"}, "CSE": {"x": 1154, "y": 822, "type": "concourse", "label": "SE Conc"}, "CS": {"x": 710, "y": 822, "type": "concourse", "label": "South Conc"}, "CSW": {"x": 266, "y": 822, "type": "concourse", "label": "SW Conc"}, "CW": {"x": 266, "y": 490, "type": "concourse", "label": "West Conc"}, "CNW": {"x": 266, "y": 158, "type": "concourse", "label": "NW Conc"}, "ZN": {"x": 710, "y": 234, "type": "zone", "label": "North Zone"}, "ZE": {"x": 1078, "y": 490, "type": "zone", "label": "East Zone"}, "ZS": {"x": 710, "y": 746, "type": "zone", "label": "South Zone"}, "ZW": {"x": 342, "y": 490, "type": "zone", "label": "West Zone"}, "S531": {"x": 304, "y": 319, "type": "block", "label": "Section 531"}, "S530": {"x": 304, "y": 285, "type": "block", "label": "Section 530"}, "S529": {"x": 304, "y": 251, "type": "block", "label": "Section 529"}, "S528": {"x": 526, "y": 196, "type": "block", "label": "Section 528"}, "S527": {"x": 579, "y": 196, "type": "block", "label": "Section 527"}, "S526": {"x": 631, "y": 196, "type": "block", "label": "Section 526"}, "S525": {"x": 684, "y": 196, "type": "block", "label": "Section 525"}, "S524": {"x": 736, "y": 196, "type": "block", "label": "Section 524"}, "S523": {"x": 789, "y": 196, "type": "block", "label": "Section 523"}, "S522": {"x": 841, "y": 196, "type": "block", "label": "Section 522"}, "S521": {"x": 894, "y": 196, "type": "block", "label": "Section 521"}, "S520": {"x": 947, "y": 196, "type": "block", "label": "Section 520"}, "S519": {"x": 999, "y": 196, "type": "block", "label": "Section 519"}, "S518": {"x": 1052, "y": 196, "type": "block", "label": "Section 518"}, "S544": {"x": 379, "y": 784, "type": "block", "label": "Section 544"}, "S545": {"x": 452, "y": 784, "type": "block", "label": "Section 545"}, "S546": {"x": 526, "y": 784, "type": "block", "label": "Section 546"}, "S547": {"x": 600, "y": 784, "type": "block", "label": "Section 547"}, "S548": {"x": 673, "y": 784, "type": "block", "label": "Section 548"}, "S501": {"x": 741, "y": 784, "type": "block", "label": "Section 501"}, "S502": {"x": 802, "y": 784, "type": "block", "label": "Section 502"}, "S503": {"x": 863, "y": 784, "type": "block", "label": "Section 503"}, "S504": {"x": 925, "y": 784, "type": "block", "label": "Section 504"}, "S505": {"x": 1116, "y": 725, "type": "block", "label": "Section 505"}, "S506": {"x": 1116, "y": 682, "type": "block", "label": "Section 506"}, "S532": {"x": 304, "y": 196, "type": "block", "label": "Section 532"}, "S533": {"x": 304, "y": 388, "type": "block", "label": "Section 533"}, "S534": {"x": 304, "y": 422, "type": "block", "label": "Section 534"}, "S535": {"x": 304, "y": 456, "type": "block", "label": "Section 535"}, "S536": {"x": 304, "y": 490, "type": "block", "label": "Section 536"}, "S537": {"x": 304, "y": 524, "type": "block", "label": "Section 537"}, "S538": {"x": 304, "y": 558, "type": "block", "label": "Section 538"}, "S539": {"x": 304, "y": 592, "type": "block", "label": "Section 539"}, "S540": {"x": 304, "y": 627, "type": "block", "label": "Section 540"}, "S541": {"x": 304, "y": 661, "type": "block", "label": "Section 541"}, "S542": {"x": 304, "y": 695, "type": "block", "label": "Section 542"}, "S543": {"x": 304, "y": 784, "type": "block", "label": "Section 543"}, "S516": {"x": 1116, "y": 255, "type": "block", "label": "Section 516"}, "S515": {"x": 1116, "y": 298, "type": "block", "label": "Section 515"}, "S514": {"x": 1116, "y": 341, "type": "block", "label": "Section 514"}, "S513": {"x": 1116, "y": 383, "type": "block", "label": "Section 513"}, "S512": {"x": 1116, "y": 426, "type": "block", "label": "Section 512"}, "S511": {"x": 1116, "y": 469, "type": "block", "label": "Section 511"}, "S510": {"x": 1116, "y": 511, "type": "block", "label": "Section 510"}, "S509": {"x": 1116, "y": 554, "type": "block", "label": "Section 509"}, "S508": {"x": 1116, "y": 597, "type": "block", "label": "Section 508"}, "S507": {"x": 1116, "y": 784, "type": "block", "label": "Section 507"}, "S517": {"x": 1116, "y": 196, "type": "block", "label": "Section 517"}, "S330": {"x": 372, "y": 339, "type": "block", "label": "Section 330"}, "S329": {"x": 372, "y": 309, "type": "block", "label": "Section 329"}, "S328": {"x": 512, "y": 264, "type": "block", "label": "Section 328"}, "S327": {"x": 556, "y": 264, "type": "block", "label": "Section 327"}, "S326": {"x": 600, "y": 264, "type": "block", "label": "Section 326"}, "S325": {"x": 644, "y": 264, "type": "block", "label": "Section 325"}, "S324": {"x": 688, "y": 264, "type": "block", "label": "Section 324"}, "S323": {"x": 732, "y": 264, "type": "block", "label": "Section 323"}, "S322": {"x": 776, "y": 264, "type": "block", "label": "Section 322"}, "S321": {"x": 820, "y": 264, "type": "block", "label": "Section 321"}, "S320": {"x": 864, "y": 264, "type": "block", "label": "Section 320"}, "S319": {"x": 908, "y": 264, "type": "block", "label": "Section 319"}, "S318": {"x": 1048, "y": 264, "type": "block", "label": "Section 318"}, "S317": {"x": 996, "y": 264, "type": "block", "label": "Section 317"}, "S342": {"x": 433, "y": 716, "type": "block", "label": "Section 342"}, "S343": {"x": 494, "y": 716, "type": "block", "label": "Section 343"}, "S344": {"x": 556, "y": 716, "type": "block", "label": "Section 344"}, "S345": {"x": 618, "y": 716, "type": "block", "label": "Section 345"}, "S346": {"x": 679, "y": 716, "type": "block", "label": "Section 346"}, "S301": {"x": 741, "y": 716, "type": "block", "label": "Section 301"}, "S302": {"x": 802, "y": 716, "type": "block", "label": "Section 302"}, "S303": {"x": 864, "y": 716, "type": "block", "label": "Section 303"}, "S304": {"x": 926, "y": 716, "type": "block", "label": "Section 304"}, "S305": {"x": 1048, "y": 670, "type": "block", "label": "Section 305"}, "S331": {"x": 372, "y": 264, "type": "block", "label": "Section 331"}, "S332": {"x": 372, "y": 400, "type": "block", "label": "Section 332"}, "S333": {"x": 372, "y": 430, "type": "block", "label": "Section 333"}, "S334": {"x": 372, "y": 460, "type": "block", "label": "Section 334"}, "S335": {"x": 372, "y": 490, "type": "block", "label": "Section 335"}, "S336": {"x": 372, "y": 520, "type": "block", "label": "Section 336"}, "S337": {"x": 372, "y": 550, "type": "block", "label": "Section 337"}, "S338": {"x": 372, "y": 580, "type": "block", "label": "Section 338"}, "S339": {"x": 372, "y": 611, "type": "block", "label": "Section 339"}, "S340": {"x": 372, "y": 641, "type": "block", "label": "Section 340"}, "S341": {"x": 372, "y": 716, "type": "block", "label": "Section 341"}, "S316": {"x": 1048, "y": 310, "type": "block", "label": "Section 316"}, "S315": {"x": 1048, "y": 343, "type": "block", "label": "Section 315"}, "S314": {"x": 1048, "y": 376, "type": "block", "label": "Section 314"}, "S313": {"x": 1048, "y": 408, "type": "block", "label": "Section 313"}, "S312": {"x": 1048, "y": 441, "type": "block", "label": "Section 312"}, "S311": {"x": 1048, "y": 474, "type": "block", "label": "Section 311"}, "S310": {"x": 1048, "y": 506, "type": "block", "label": "Section 310"}, "S309": {"x": 1048, "y": 539, "type": "block", "label": "Section 309"}, "S308": {"x": 1048, "y": 572, "type": "block", "label": "Section 308"}, "S307": {"x": 1048, "y": 604, "type": "block", "label": "Section 307"}, "S306": {"x": 1048, "y": 716, "type": "block", "label": "Section 306"}, "S123": {"x": 478, "y": 319, "type": "block", "label": "Section 123"}, "S122": {"x": 529, "y": 319, "type": "block", "label": "Section 122"}, "S121": {"x": 581, "y": 319, "type": "block", "label": "Section 121"}, "S120": {"x": 633, "y": 319, "type": "block", "label": "Section 120"}, "S119": {"x": 684, "y": 319, "type": "block", "label": "Section 119"}, "S118": {"x": 736, "y": 319, "type": "block", "label": "Section 118"}, "S117": {"x": 787, "y": 319, "type": "block", "label": "Section 117"}, "S116": {"x": 839, "y": 319, "type": "block", "label": "Section 116"}, "S115": {"x": 891, "y": 319, "type": "block", "label": "Section 115"}, "S114": {"x": 993, "y": 319, "type": "block", "label": "Section 114"}, "S133": {"x": 427, "y": 557, "type": "block", "label": "Section 133"}, "S134": {"x": 427, "y": 580, "type": "block", "label": "Section 134"}, "S135": {"x": 427, "y": 602, "type": "block", "label": "Section 135"}, "S136": {"x": 427, "y": 661, "type": "block", "label": "Section 136"}, "S1": {"x": 615, "y": 661, "type": "block", "label": "Section 1"}, "S2": {"x": 645, "y": 661, "type": "block", "label": "Section 2"}, "S3": {"x": 675, "y": 661, "type": "block", "label": "Section 3"}, "S4": {"x": 705, "y": 661, "type": "block", "label": "Section 4"}, "S101": {"x": 993, "y": 661, "type": "block", "label": "Section 101"}, "S102": {"x": 993, "y": 602, "type": "block", "label": "Section 102"}, "S103": {"x": 993, "y": 580, "type": "block", "label": "Section 103"}, "S104": {"x": 993, "y": 557, "type": "block", "label": "Section 104"}, "S124": {"x": 427, "y": 319, "type": "block", "label": "Section 124"}, "S125": {"x": 427, "y": 378, "type": "block", "label": "Section 125"}, "S126": {"x": 427, "y": 400, "type": "block", "label": "Section 126"}, "S127": {"x": 427, "y": 423, "type": "block", "label": "Section 127"}, "S128": {"x": 427, "y": 445, "type": "block", "label": "Section 128"}, "S129": {"x": 427, "y": 468, "type": "block", "label": "Section 129"}, "S130": {"x": 427, "y": 490, "type": "block", "label": "Section 130"}, "S131": {"x": 427, "y": 512, "type": "block", "label": "Section 131"}, "S132": {"x": 427, "y": 535, "type": "block", "label": "Section 132"}, "S113": {"x": 993, "y": 355, "type": "block", "label": "Section 113"}, "S112": {"x": 993, "y": 378, "type": "block", "label": "Section 112"}, "S111": {"x": 993, "y": 400, "type": "block", "label": "Section 111"}, "S110": {"x": 993, "y": 423, "type": "block", "label": "Section 110"}, "S109": {"x": 993, "y": 445, "type": "block", "label": "Section 109"}, "S108": {"x": 993, "y": 468, "type": "block", "label": "Section 108"}, "S107": {"x": 993, "y": 490, "type": "block", "label": "Section 107"}, "S106": {"x": 993, "y": 512, "type": "block", "label": "Section 106"}, "S105": {"x": 993, "y": 535, "type": "block", "label": "Section 105"}};
+var GTG = {"G1": {"CN": 0.14}, "CN": {"G1": 0.14, "CNE": 4.44, "CNW": 4.44, "ZN": 0.76, "S528": 1.879, "S527": 1.364, "S526": 0.877, "S525": 0.46, "S524": 0.46, "S523": 0.877, "S522": 1.364, "S521": 1.879, "S328": 2.246, "S327": 1.87, "S326": 1.528, "S325": 1.249, "S324": 1.083, "S323": 1.083, "S322": 1.249, "S321": 1.528, "S320": 1.87, "S319": 2.246, "S122": 2.422, "S121": 2.063, "S120": 1.785, "S119": 1.631, "S118": 1.631, "S117": 1.785, "S116": 2.063, "S115": 2.422}, "G2": {"CNE": 0.198}, "CNE": {"G2": 0.198, "CN": 4.44, "CE": 3.32, "ZN": 4.505, "ZE": 3.406, "S520": 2.105, "S519": 1.596, "S518": 1.088, "S516": 1.042, "S515": 1.451, "S517": 0.537, "S318": 1.499, "S317": 1.903, "S316": 1.853, "S114": 2.277}, "G3": {"CE": 0.14}, "CE": {"G3": 0.14, "CNE": 3.32, "CSE": 3.32, "ZE": 0.76, "S514": 1.538, "S513": 1.135, "S512": 0.744, "S511": 0.434, "S510": 0.434, "S509": 0.744, "S508": 1.135, "S315": 1.812, "S314": 1.557, "S313": 1.34, "S312": 1.168, "S311": 1.072, "S310": 1.072, "S309": 1.168, "S308": 1.34, "S307": 1.557, "S102": 1.961, "S103": 1.844, "S104": 1.744, "S113": 2.101, "S112": 1.961, "S111": 1.844, "S110": 1.744, "S109": 1.672, "S108": 1.625, "S107": 1.61, "S106": 1.625, "S105": 1.672}, "G4": {"CSE": 0.198}, "CSE": {"G4": 0.198, "CE": 3.32, "CS": 4.44, "ZE": 3.406, "ZS": 4.505, "S505": 1.042, "S506": 1.451, "S507": 0.537, "S305": 1.853, "S306": 1.499, "S101": 2.277}, "G5": {"CS": 0.14}, "CS": {"G5": 0.14, "CSE": 4.44, "CSW": 4.44, "ZS": 0.76, "S546": 1.879, "S547": 1.164, "S548": 0.53, "S501": 0.49, "S502": 0.995, "S503": 1.576, "S504": 2.183, "S343": 2.406, "S344": 1.87, "S345": 1.404, "S346": 1.104, "S301": 1.104, "S302": 1.404, "S303": 1.87, "S304": 2.406, "S1": 1.869, "S2": 1.736, "S3": 1.648, "S4": 1.611}, "G6": {"CSW": 0.198}, "CSW": {"G6": 0.198, "CS": 4.44, "CW": 3.32, "ZS": 4.505, "ZW": 3.406, "S544": 1.192, "S545": 1.898, "S541": 1.654, "S542": 1.326, "S543": 0.537, "S342": 1.978, "S341": 1.499, "S136": 2.277}, "G7": {"CW": 0.14}, "CW": {"G7": 0.14, "CSW": 3.32, "CNW": 3.32, "ZW": 0.76, "S533": 1.088, "S534": 0.779, "S535": 0.51, "S536": 0.38, "S537": 0.51, "S538": 0.779, "S539": 1.088, "S540": 1.422, "S330": 1.845, "S332": 1.391, "S333": 1.218, "S334": 1.102, "S335": 1.06, "S336": 1.102, "S337": 1.218, "S338": 1.391, "S339": 1.609, "S340": 1.845, "S133": 1.744, "S134": 1.844, "S135": 1.961, "S125": 1.961, "S126": 1.844, "S127": 1.744, "S128": 1.672, "S129": 1.625, "S130": 1.61, "S131": 1.625, "S132": 1.672}, "G8": {"CNW": 0.198}, "CNW": {"G8": 0.198, "CW": 3.32, "CN": 4.44, "ZW": 3.406, "ZN": 4.505, "S531": 1.654, "S530": 1.326, "S529": 1.005, "S532": 0.537, "S329": 1.845, "S331": 1.499, "S123": 2.662, "S124": 2.277}, "ZN": {"CN": 0.76, "CNE": 4.505, "CNW": 4.505, "S528": 1.879, "S527": 1.364, "S526": 0.877, "S525": 0.46, "S524": 0.46, "S523": 0.877, "S522": 1.364, "S521": 1.879, "S520": 2.4, "S519": 2.915, "S518": 3.441, "S328": 2.003, "S327": 1.569, "S326": 1.14, "S325": 0.725, "S324": 0.372, "S323": 0.372, "S322": 0.725, "S321": 1.14, "S320": 1.569, "S319": 2.003, "S318": 3.393, "S317": 2.876, "S331": 3.393, "S123": 2.471, "S122": 2.0, "S121": 1.545, "S120": 1.147, "S119": 0.889, "S118": 0.889, "S117": 1.147, "S116": 1.545, "S115": 2.0, "S114": 2.955, "S124": 2.955}, "ZE": {"CNE": 3.406, "CE": 0.76, "CSE": 3.406, "S505": 2.381, "S506": 1.957, "S516": 2.381, "S515": 1.957, "S514": 1.538, "S513": 1.135, "S512": 0.744, "S511": 0.434, "S510": 0.434, "S509": 0.744, "S508": 1.135, "S507": 2.964, "S517": 2.964, "S305": 1.825, "S316": 1.825, "S315": 1.5, "S314": 1.179, "S313": 0.873, "S312": 0.575, "S311": 0.34, "S310": 0.34, "S309": 0.575, "S308": 0.873, "S307": 1.179, "S102": 1.406, "S103": 1.238, "S104": 1.082, "S113": 1.595, "S112": 1.406, "S111": 1.238, "S110": 1.082, "S109": 0.962, "S108": 0.878, "S107": 0.85, "S106": 0.878, "S105": 0.962}, "ZS": {"CSE": 4.505, "CS": 0.76, "CSW": 4.505, "S544": 3.332, "S545": 2.608, "S546": 1.879, "S547": 1.164, "S548": 0.53, "S501": 0.49, "S502": 0.995, "S503": 1.576, "S504": 2.183, "S342": 2.786, "S343": 2.181, "S344": 1.569, "S345": 0.968, "S346": 0.431, "S301": 0.431, "S302": 0.968, "S303": 1.569, "S304": 2.181, "S341": 3.393, "S306": 3.393, "S136": 2.955, "S1": 1.275, "S2": 1.07, "S3": 0.919, "S4": 0.851, "S101": 2.955}, "ZW": {"CSW": 3.406, "CW": 0.76, "CNW": 3.406, "S531": 1.752, "S530": 2.085, "S529": 2.42, "S532": 2.964, "S533": 1.088, "S534": 0.779, "S535": 0.51, "S536": 0.38, "S537": 0.51, "S538": 0.779, "S539": 1.088, "S540": 1.422, "S541": 1.752, "S542": 2.085, "S543": 2.964, "S330": 1.54, "S329": 1.835, "S332": 0.949, "S333": 0.671, "S334": 0.424, "S335": 0.3, "S336": 0.424, "S337": 0.671, "S338": 0.949, "S339": 1.247, "S340": 1.54, "S133": 1.082, "S134": 1.238, "S135": 1.406, "S125": 1.406, "S126": 1.238, "S127": 1.082, "S128": 0.962, "S129": 0.878, "S130": 0.85, "S131": 0.878, "S132": 0.962}, "S531": {"ZW": 1.752, "CNW": 1.654}, "S530": {"ZW": 2.085, "CNW": 1.326}, "S529": {"ZW": 2.42, "CNW": 1.005}, "S528": {"ZN": 1.879, "CN": 1.879}, "S527": {"ZN": 1.364, "CN": 1.364}, "S526": {"ZN": 0.877, "CN": 0.877}, "S525": {"ZN": 0.46, "CN": 0.46}, "S524": {"ZN": 0.46, "CN": 0.46}, "S523": {"ZN": 0.877, "CN": 0.877}, "S522": {"ZN": 1.364, "CN": 1.364}, "S521": {"ZN": 1.879, "CN": 1.879}, "S520": {"ZN": 2.4, "CNE": 2.105}, "S519": {"ZN": 2.915, "CNE": 1.596}, "S518": {"ZN": 3.441, "CNE": 1.088}, "S544": {"ZS": 3.332, "CSW": 1.192}, "S545": {"ZS": 2.608, "CSW": 1.898}, "S546": {"ZS": 1.879, "CS": 1.879}, "S547": {"ZS": 1.164, "CS": 1.164}, "S548": {"ZS": 0.53, "CS": 0.53}, "S501": {"ZS": 0.49, "CS": 0.49}, "S502": {"ZS": 0.995, "CS": 0.995}, "S503": {"ZS": 1.576, "CS": 1.576}, "S504": {"ZS": 2.183, "CS": 2.183}, "S505": {"ZE": 2.381, "CSE": 1.042}, "S506": {"ZE": 1.957, "CSE": 1.451}, "S532": {"ZW": 2.964, "CNW": 0.537}, "S533": {"ZW": 1.088, "CW": 1.088}, "S534": {"ZW": 0.779, "CW": 0.779}, "S535": {"ZW": 0.51, "CW": 0.51}, "S536": {"ZW": 0.38, "CW": 0.38}, "S537": {"ZW": 0.51, "CW": 0.51}, "S538": {"ZW": 0.779, "CW": 0.779}, "S539": {"ZW": 1.088, "CW": 1.088}, "S540": {"ZW": 1.422, "CW": 1.422}, "S541": {"ZW": 1.752, "CSW": 1.654}, "S542": {"ZW": 2.085, "CSW": 1.326}, "S543": {"ZW": 2.964, "CSW": 0.537}, "S516": {"ZE": 2.381, "CNE": 1.042}, "S515": {"ZE": 1.957, "CNE": 1.451}, "S514": {"ZE": 1.538, "CE": 1.538}, "S513": {"ZE": 1.135, "CE": 1.135}, "S512": {"ZE": 0.744, "CE": 0.744}, "S511": {"ZE": 0.434, "CE": 0.434}, "S510": {"ZE": 0.434, "CE": 0.434}, "S509": {"ZE": 0.744, "CE": 0.744}, "S508": {"ZE": 1.135, "CE": 1.135}, "S507": {"ZE": 2.964, "CSE": 0.537}, "S517": {"ZE": 2.964, "CNE": 0.537}, "S330": {"ZW": 1.54, "CW": 1.845}, "S329": {"ZW": 1.835, "CNW": 1.845}, "S328": {"ZN": 2.003, "CN": 2.246}, "S327": {"ZN": 1.569, "CN": 1.87}, "S326": {"ZN": 1.14, "CN": 1.528}, "S325": {"ZN": 0.725, "CN": 1.249}, "S324": {"ZN": 0.372, "CN": 1.083}, "S323": {"ZN": 0.372, "CN": 1.083}, "S322": {"ZN": 0.725, "CN": 1.249}, "S321": {"ZN": 1.14, "CN": 1.528}, "S320": {"ZN": 1.569, "CN": 1.87}, "S319": {"ZN": 2.003, "CN": 2.246}, "S318": {"ZN": 3.393, "CNE": 1.499}, "S317": {"ZN": 2.876, "CNE": 1.903}, "S342": {"ZS": 2.786, "CSW": 1.978}, "S343": {"ZS": 2.181, "CS": 2.406}, "S344": {"ZS": 1.569, "CS": 1.87}, "S345": {"ZS": 0.968, "CS": 1.404}, "S346": {"ZS": 0.431, "CS": 1.104}, "S301": {"ZS": 0.431, "CS": 1.104}, "S302": {"ZS": 0.968, "CS": 1.404}, "S303": {"ZS": 1.569, "CS": 1.87}, "S304": {"ZS": 2.181, "CS": 2.406}, "S305": {"ZE": 1.825, "CSE": 1.853}, "S331": {"ZN": 3.393, "CNW": 1.499}, "S332": {"ZW": 0.949, "CW": 1.391}, "S333": {"ZW": 0.671, "CW": 1.218}, "S334": {"ZW": 0.424, "CW": 1.102}, "S335": {"ZW": 0.3, "CW": 1.06}, "S336": {"ZW": 0.424, "CW": 1.102}, "S337": {"ZW": 0.671, "CW": 1.218}, "S338": {"ZW": 0.949, "CW": 1.391}, "S339": {"ZW": 1.247, "CW": 1.609}, "S340": {"ZW": 1.54, "CW": 1.845}, "S341": {"ZS": 3.393, "CSW": 1.499}, "S316": {"ZE": 1.825, "CNE": 1.853}, "S315": {"ZE": 1.5, "CE": 1.812}, "S314": {"ZE": 1.179, "CE": 1.557}, "S313": {"ZE": 0.873, "CE": 1.34}, "S312": {"ZE": 0.575, "CE": 1.168}, "S311": {"ZE": 0.34, "CE": 1.072}, "S310": {"ZE": 0.34, "CE": 1.072}, "S309": {"ZE": 0.575, "CE": 1.168}, "S308": {"ZE": 0.873, "CE": 1.34}, "S307": {"ZE": 1.179, "CE": 1.557}, "S306": {"ZS": 3.393, "CSE": 1.499}, "S123": {"ZN": 2.471, "CNW": 2.662}, "S122": {"ZN": 2.0, "CN": 2.422}, "S121": {"ZN": 1.545, "CN": 2.063}, "S120": {"ZN": 1.147, "CN": 1.785}, "S119": {"ZN": 0.889, "CN": 1.631}, "S118": {"ZN": 0.889, "CN": 1.631}, "S117": {"ZN": 1.147, "CN": 1.785}, "S116": {"ZN": 1.545, "CN": 2.063}, "S115": {"ZN": 2.0, "CN": 2.422}, "S114": {"ZN": 2.955, "CNE": 2.277}, "S133": {"ZW": 1.082, "CW": 1.744}, "S134": {"ZW": 1.238, "CW": 1.844}, "S135": {"ZW": 1.406, "CW": 1.961}, "S136": {"ZS": 2.955, "CSW": 2.277}, "S1": {"ZS": 1.275, "CS": 1.869}, "S2": {"ZS": 1.07, "CS": 1.736}, "S3": {"ZS": 0.919, "CS": 1.648}, "S4": {"ZS": 0.851, "CS": 1.611}, "S101": {"ZS": 2.955, "CSE": 2.277}, "S102": {"ZE": 1.406, "CE": 1.961}, "S103": {"ZE": 1.238, "CE": 1.844}, "S104": {"ZE": 1.082, "CE": 1.744}, "S124": {"ZN": 2.955, "CNW": 2.277}, "S125": {"ZW": 1.406, "CW": 1.961}, "S126": {"ZW": 1.238, "CW": 1.844}, "S127": {"ZW": 1.082, "CW": 1.744}, "S128": {"ZW": 0.962, "CW": 1.672}, "S129": {"ZW": 0.878, "CW": 1.625}, "S130": {"ZW": 0.85, "CW": 1.61}, "S131": {"ZW": 0.878, "CW": 1.625}, "S132": {"ZW": 0.962, "CW": 1.672}, "S113": {"ZE": 1.595, "CE": 2.101}, "S112": {"ZE": 1.406, "CE": 1.961}, "S111": {"ZE": 1.238, "CE": 1.844}, "S110": {"ZE": 1.082, "CE": 1.744}, "S109": {"ZE": 0.962, "CE": 1.672}, "S108": {"ZE": 0.878, "CE": 1.625}, "S107": {"ZE": 0.85, "CE": 1.61}, "S106": {"ZE": 0.878, "CE": 1.625}, "S105": {"ZE": 0.962, "CE": 1.672}};
+
+function dijkstraT(start,end){
+  var dist={},prev={},unv=new Set(Object.keys(GTG));
+  for(var n of unv){dist[n]=n===start?0:Infinity;prev[n]=null;}
+  while(unv.size>0){
+    var cur=null,md=Infinity;
+    for(var n of unv)if(dist[n]<md){md=dist[n];cur=n;}
+    if(!cur||cur===end)break;
+    unv.delete(cur);
+    for(var nb in(GTG[cur]||{})){
+      if(unv.has(nb)){var nd=dist[cur]+GTG[cur][nb];if(nd<dist[nb]){dist[nb]=nd;prev[nb]=cur;}}
+    }
+  }
+  var path=[],c=end;while(c){path.unshift(c);c=prev[c];}
+  return{path,cost:dist[end]};
+}
+
+function pD(ids){
+  var ns=ids.map(id=>NT[id]).filter(Boolean);
+  if(ns.length<2)return"";
+  if(ns.length===2)return`M${ns[0].x},${ns[0].y} L${ns[1].x},${ns[1].y}`;
+  var d=`M${ns[0].x},${ns[0].y}`;
+  var m={x:(ns[0].x+ns[1].x)/2,y:(ns[0].y+ns[1].y)/2};
+  d+=` L${m.x},${m.y}`;
+  for(var i=1;i<ns.length-1;i++){
+    var mn={x:(ns[i].x+ns[i+1].x)/2,y:(ns[i].y+ns[i+1].y)/2};
+    d+=` Q${ns[i].x},${ns[i].y} ${mn.x},${mn.y}`;
+  }
+  return d+` L${ns[ns.length-1].x},${ns[ns.length-1].y}`;
+}
+function pLen(ids){
+  var l=0,ns=ids.map(id=>NT[id]).filter(Boolean);
+  for(var i=1;i<ns.length;i++)l+=Math.sqrt((ns[i].x-ns[i-1].x)**2+(ns[i].y-ns[i-1].y)**2);
+  return Math.ceil(l*1.1)+30;
+}
+
+function clearRouteOnMap(){
+  var g=document.getElementById("routeOverlay");if(g)g.innerHTML="";
+}
+
+function drawRouteOnMap(gk,sk,status){
+  var g=document.getElementById("routeOverlay");if(!g)return;
+  g.innerHTML="";
+  var sKey="S"+sk;
+  var res=dijkstraT(gk,sKey);
+  if(!res.path.length||res.cost===Infinity)return;
+  var col=status==="high"?"#dc2626":status==="medium"?"#f59e0b":"#16a34a";
+  var pathD=pD(res.path),L=pLen(res.path);
+  var dur=Math.max(0.9,L/700).toFixed(1)+"s";
+  var NS="http://www.w3.org/2000/svg";
+
+  // Glow
+  var gl=document.createElementNS(NS,"path");
+  gl.setAttribute("d",pathD);gl.setAttribute("stroke",col);gl.setAttribute("stroke-width","18");
+  gl.setAttribute("fill","none");gl.setAttribute("opacity","0.15");gl.setAttribute("stroke-linecap","round");
+  gl.setAttribute("stroke-dasharray",L);gl.setAttribute("stroke-dashoffset",L);
+  gl.style.animation="drawLine "+dur+" ease forwards";g.appendChild(gl);
+
+  // Main line
+  var ln=document.createElementNS(NS,"path");
+  ln.setAttribute("d",pathD);ln.setAttribute("stroke",col);ln.setAttribute("stroke-width","5");
+  ln.setAttribute("fill","none");ln.setAttribute("stroke-linecap","round");ln.setAttribute("stroke-linejoin","round");
+  ln.setAttribute("stroke-dasharray",L);ln.setAttribute("stroke-dashoffset",L);
+  ln.style.animation="drawLine "+dur+" ease forwards";g.appendChild(ln);
+
+  // Dot at each intermediate node
+  res.path.slice(1,-1).forEach(function(nid){
+    var n=NT[nid];if(!n||(n.type!="concourse"&&n.type!="zone"))return;
+    var d2=document.createElementNS(NS,"circle");
+    d2.setAttribute("cx",n.x);d2.setAttribute("cy",n.y);d2.setAttribute("r","7");
+    d2.setAttribute("fill",col);d2.setAttribute("opacity","0.6");
+    g.appendChild(d2);
+  });
+
+  // Gate: pulsing ring
+  var gn=NT[gk];
+  if(gn){
+    ["14","10"].forEach((r,i)=>{
+      var c=document.createElementNS(NS,"circle");
+      c.setAttribute("cx",gn.x);c.setAttribute("cy",gn.y);c.setAttribute("r",r);
+      c.setAttribute("fill",i===1?col:"none");
+      c.setAttribute("stroke",col);c.setAttribute("stroke-width","3");
+      if(i===0)c.className.baseVal="rPulse";
+      else c.setAttribute("fill-opacity","0.9");
+      g.appendChild(c);
+    });
+    // Gate label
+    var offX=gn.x<710?-18:18,offY=gn.y<300?22:gn.y>700?-22:0;
+    var tg=document.createElementNS(NS,"text");
+    tg.setAttribute("x",gn.x+offX);tg.setAttribute("y",gn.y+offY);
+    tg.setAttribute("text-anchor",gn.x<710?"end":"start");
+    tg.setAttribute("font-size","28");tg.setAttribute("fill",col);tg.setAttribute("font-weight","900");
+    tg.setAttribute("font-family","Arial Black,Arial,sans-serif");
+    tg.setAttribute("paint-order","stroke");tg.setAttribute("stroke","#fff");tg.setAttribute("stroke-width","7");
+    tg.textContent=gn.label;tg.className.baseVal="rPop";g.appendChild(tg);
+  }
+
+  // Section: white badge over the existing section block
+  var sn=NT[sKey];
+  if(sn){
+    var bw=84,bh=40;
+    var bg=document.createElementNS(NS,"rect");
+    bg.setAttribute("x",sn.x-bw/2);bg.setAttribute("y",sn.y-bh/2);
+    bg.setAttribute("width",bw);bg.setAttribute("height",bh);bg.setAttribute("rx","8");
+    bg.setAttribute("fill","#fff");bg.setAttribute("fill-opacity","0.95");
+    bg.setAttribute("stroke",col);bg.setAttribute("stroke-width","4");
+    bg.className.baseVal="rPop";g.appendChild(bg);
+    var tl=document.createElementNS(NS,"text");
+    tl.setAttribute("x",sn.x);tl.setAttribute("y",sn.y+7);
+    tl.setAttribute("text-anchor","middle");tl.setAttribute("font-size","22");
+    tl.setAttribute("fill",col);tl.setAttribute("font-weight","900");
+    tl.setAttribute("font-family","Arial Black,Arial,sans-serif");
+    tl.textContent="Sec "+sk;tl.className.baseVal="rPop";g.appendChild(tl);
+    // Arrow
+    var prev=NT[res.path[res.path.length-2]];
+    if(prev){
+      var dx=sn.x-prev.x,dy=sn.y-prev.y,tl2=Math.sqrt(dx*dx+dy*dy);
+      if(tl2>1){
+        var tx=dx/tl2,ty=dy/tl2,px=-ty,py=tx,as=22;
+        var ar=document.createElementNS(NS,"polygon");
+        ar.setAttribute("points",
+          `${sn.x},${sn.y} ${sn.x-tx*as+px*as*0.5},${sn.y-ty*as+py*as*0.5} `+
+          `${sn.x-tx*as-px*as*0.5},${sn.y-ty*as-py*as*0.5}`);
+        ar.setAttribute("fill",col);ar.className.baseVal="rPop";g.appendChild(ar);
+      }
+    }
+  }
+}
+
+
+// ── OVERRIDE findRoute & visualisePath to use new 8-gate topology ──
+// The original checks GRAPH which has G1-G6; we replace with GTG (G1-G8)
+window.findRoute = function() {
+  var tid = document.getElementById("ticketInput").value.trim().toUpperCase();
+  var alertBox = document.getElementById("routeAlert");
+  alertBox.innerHTML = "";
+  clearRouteOnMap();
+
+  if (!TICKETS[tid]) {
+    alertBox.innerHTML = "<div class='alert alert-danger'>&#10060; Ticket not found. Try TKT001 – TKT012</div>";
+    return;
+  }
+  var ticket = TICKETS[tid];
+  var startNode = ticket.gateKey;
+  var endNode   = "S" + ticket.section;
+
+  if (!GTG[startNode]) {
+    alertBox.innerHTML = "<div class='alert alert-danger'>&#10060; Gate node not found: " + startNode + "</div>";
+    return;
+  }
+  if (!GTG[endNode]) {
+    alertBox.innerHTML = "<div class='alert alert-danger'>&#10060; Section node not found: " + endNode + "</div>";
+    return;
+  }
+
+  var res = dijkstraT(startNode, endNode);
+  if (!res.path || res.path.length === 0 || res.cost === Infinity) {
+    alertBox.innerHTML = "<div class='alert alert-danger'>&#10060; No route found</div>";
+    return;
+  }
+
+  // Show ticket info panel
+  var info = document.getElementById("ticketInfo");
+  if (info) {
+    info.style.display = "block";
+    var fields = {
+      ticketGate: ticket.gate, ticketSection: ticket.section,
+      ticketRow: ticket.row, ticketSeat: ticket.seat,
+      ticketStand: ticket.stand, ticketTime: ticket.time + " min",
+      ticketStatus: ticket.status.charAt(0).toUpperCase()+ticket.status.slice(1),
+      ticketAlgo: "Dijkstra"
+    };
+    Object.keys(fields).forEach(function(k){
+      var el=document.getElementById(k); if(el) el.textContent=fields[k];
+    });
+  }
+
+  // Draw visual route on stadium map
+  drawRouteOnMap(ticket.gateKey, ticket.section, ticket.status);
+
+  // Build path visualisation using NT node labels (replaces GRAPH lookup)
+  visualisePathNew(res, ticket.status);
+
+  // Show route summary
+  alertBox.innerHTML =
+    "<div class='alert alert-success'>" +
+    "&#9989; Route: <strong>" + NT[startNode].label + "</strong> &rarr; " +
+    "<strong>" + NT[endNode].label + "</strong> &nbsp;|&nbsp; " +
+    "Path length: <strong>" + res.path.length + " nodes</strong> &nbsp;|&nbsp; " +
+    "Cost: <strong>" + res.cost.toFixed(2) + "</strong>" +
+    "</div>";
+};
+
+var TYPE_ICONS = {
+  gate:"🚪", outer_gate:"🚪", checkpoint:"🛡️", concourse:"🚶",
+  zone:"📍", block:"🪑", stairs:"🪜"
+};
+var TYPE_COLS = {
+  gate:"#059669", outer_gate:"#059669", checkpoint:"#f59e0b",
+  concourse:"#8b5cf6", zone:"#3b82f6", block:"#374151", stairs:"#06b6d4"
+};
+
+function visualisePathNew(result, status) {
+  var c = document.getElementById("pathVisualization");
+  if (!c) return;
+  c.innerHTML = "";
+  var arrowCol = {high:"#ef4444",medium:"#f59e0b",low:"#059669"}[status]||"#6b7280";
+  result.path.forEach(function(nid, i) {
+    var node = NT[nid];
+    if (!node) return;
+    var col  = TYPE_COLS[node.type] || "#6b7280";
+    var icon = TYPE_ICONS[node.type] || "⬤";
+    var box  = document.createElement("div");
+    box.className = "pnode";
+    box.style.border = "2px solid " + col;
+    box.innerHTML =
+      "<div style='font-size:20px;margin-bottom:4px'>" + icon + "</div>" +
+      "<div style='font-weight:bold;color:"+col+";font-size:12px'>" + nid + "</div>" +
+      "<div style='font-size:9px;color:#6b7280;text-align:center;margin-top:2px'>" +
+        (node.label||"") + "</div>";
+    c.appendChild(box);
+    if (i < result.path.length - 1) {
+      var arr = document.createElement("div");
+      arr.className = "parrow";
+      arr.style.color = arrowCol;
+      arr.innerHTML = "&#8594;";
+      c.appendChild(arr);
+    }
+  });
+}
+
+</script>
+</body>
+</html>
